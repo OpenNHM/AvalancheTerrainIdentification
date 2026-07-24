@@ -4,11 +4,13 @@ runscript to run the plots with the actual configuration
 
 import numpy as np
 import os
+import pathlib
 
 import avaframe.in3Utils.cfgUtils as cfgUtils
 from avaframe.in3Utils import logUtils
 
-import ati.plots.out1SizeParameter as sizePlots
+import ati
+import ati.mod01Plots.out1SizeParameter as sizePlots
 import ati.mod2Mobility.compParams as compParams
 
 def runAndSavePlots(savePlotPath=""):
@@ -21,7 +23,13 @@ def runAndSavePlots(savePlotPath=""):
     cfgPlot = cfg["PLOT"]
 
     if savePlotPath == "":
-        plotPath = "data/plots"
+
+        modPath = pathlib.Path(ati.__file__).resolve().parent
+        cfgNameFile = modPath / "atiCfg.ini"
+        cfgMain = cfgUtils.getGeneralConfig(nameFile=cfgNameFile)
+        avaDir = cfgMain["MAIN"]["avalancheDirectory"]
+
+        plotPath = f"{avaDir}/Outputs/plotParameterization"
         if os.path.isdir(plotPath) == False:
             os.makedirs(plotPath)
     else:
@@ -79,6 +87,8 @@ def runAndSavePlots(savePlotPath=""):
     muxi = sizePlots.plotMuXi(cfgSize, cfgPlot)
     muxi.savefig(f"{plotPath}/muxi.png")
     crossplot.savefig(f"{plotPath}/sizeCrossCheck.png")
+
+    print(f"Saved plot: {plotPath}/sizeCrossCheck.png")
 
     # fig = sizePlots.plotDataExample()
     # fig.savefig(f'{plotPath}/test.png')
