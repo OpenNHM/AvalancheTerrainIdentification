@@ -25,7 +25,7 @@ classify avalanche terrain.
 
 Suggestions for combining the individual modules into full processing chains:
 
-- [autoATES model chain](documentation/workflowAutoAtesModelChain.md)
+- [autoATES Model Chain](documentation/workflowAutoAtesModelChain.md)
 - [Avalanche Scenario Model Chain](documentation/workflowAvaScenarioModelChain.md)
 - [Dynamic Parameterization](documentation/workflowDynamicParameterisation.md)
 - [Thalweg Analysis Model Chain](documentation/workflowThalwegAnalysis.md)
