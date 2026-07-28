@@ -4,7 +4,7 @@
 
 The **thalweg analysis workflow** (`workflows/runThalwegAnalysis.py`) runs a full avalanche simulation chain and then
 analyzes and visualizes the resulting flow paths ("thalwegs") with the
-[regional thalweg analysis](mod3Map_regionalThalwegAnalysis.md) tools. It can either:
+[regional thalweg analysis](mod3Map.md#regional-thalweg-analysis) tools. It can either:
 
 - run the full chain: PRA delineation and preparation, dynamic mobility parameterization, and
   `AvaFrame::com4FlowPy`, and then analyze the resulting simulation, **or**
@@ -20,11 +20,11 @@ The workflow is implemented in `workflows/runThalwegAnalysis.py`.
 
 ### 1. PRA Delineation, Parameterization and Mobility Simulation (if `runFlowPy = True`)
 
-If `runFlowPy` is `True`, the workflow first runs the same PRA delineation, preparation, dynamic mobility
-parameterization and `AvaFrame::com4FlowPy` execution steps as the
-[autoATES model chain](workflow_autoAtesModelChain.md#1-pra-delineation-and-preparation):
+If `runFlowPy` is `True`, the workflow runs the following steps to prepare and execute an avalanche simulation, before
+analyzing its results in Step 2:
 
-1. **PRA delineation**: [`mod1Release`](mod1Release.md): `praDelineationVeitinger.runPraDelineation` derives raw
+1. **PRA delineation**: [`mod1Release`](mod1Release.md#pradelineationveitinger):
+   `praDelineationVeitinger.runPraDelineation` derives raw
    potential release areas from the DEM (and, optionally, a forest mask).
 2. **PRA processing (polygonizing)**: [`mod1Release`](mod1Release.md): `praProcessing.runPraProcessing` converts the raw
    PRA raster into polygons.
@@ -35,7 +35,8 @@ parameterization and `AvaFrame::com4FlowPy` execution steps as the
 5. **PRA rasterization**: [`mod1Release`](mod1Release.md): `praPrepForFlowPy.runPraPrepForFlowPy` rasterizes the
    segmented release areas back to grids, writing a release-ID raster (`*-5-praID.tif`), a release-area raster
    (`*-5-praAreaM.tif`) and a release-area polygon (`*-5.geojson`).
-6. **Dynamic mobility parameterization**: [`mod2Mobility`](mod2Mobility.md):
+6. **Dynamic mobility parameterization**: [
+   `mod2Mobility`](mod2Mobility.md#computeandsaveparameters--deriving-the-mobility-parameters):
    `compParams.computeAndSaveParameters` computes the mobility parameters `alpha`, `umax` and `exp` for each release
    area, saved to `Inputs/ALPHA`, `Inputs/UMAX` and `Inputs/EXP`.
 7. **Avalanche simulation**: [
@@ -57,16 +58,14 @@ steps and by the thalweg analysis:
 > instead.
 
 If `runFlowPy = False`, this entire step is skipped, and the workflow proceeds directly to Step 2 using existing
-simulation results (an empty simulation hash `""` is passed on, which causes the thalweg analysis to search for an
-existing result folder itself).
+simulation results.
 
 ### 2. Thalweg Analysis
 
-Uses [regional thalweg analysis](mod3Map.md).
+Uses [regional thalweg analysis documentation](mod3Map.md#regional-thalweg-analysis).
 
-`regionalThalwegAnalysis.regionalThalweg2DPlotMain` is called with the `com4FlowPy` result (either the hash from Step 1,
-or an empty hash to auto-detect an existing result), generating the thalweg map, profile, altitude and regional
-statistic plots enabled in its configuration.
+`regionalThalwegAnalysis.regionalThalweg2DPlotMain` is called with the `com4FlowPy` result, generating the thalweg
+analyses plots.
 
 ---
 
@@ -88,15 +87,16 @@ base configuration, with the parameter values given in `runThalwegAnalysisCfg.in
 `False`, and a `local_` configuration file for that sub-module is available, that local configuration is used instead.
 
 As with `atiCfg.ini`, create a `local_runThalwegAnalysisCfg.ini` copy to adjust these settings for your own run. See
-the [`mod3Map` regional thalweg analysis documentation](mod3Map_regionalThalwegAnalysis.md#configuration) for the
+the [regional thalweg analysis documentation](mod3Map.md#regional-thalweg-analysis) for the
 settings controlling the thalweg plots themselves.
 
 ---
 
 ## Input Files
 
-If `runFlowPy = True`, at minimum a DEM is required, in the same structure as the
-[autoATES model chain](workflow_autoAtesModelChain.md#input-files):
+If `runFlowPy = True`, at minimum, the workflow requires a DEM. A forest raster (values between 0 and 1) is optional
+and, if provided, is used both for PRA delineation (`mod1Release`) and for the avalanche mobility simulation. that is
+provided in the following structure:
 
 ```text
 <avaDir>/
