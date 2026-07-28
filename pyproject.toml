@@ -57,7 +57,7 @@ pytest = "*"
 
 # dev environment: editable cloned AvaFrame repo
 [tool.pixi.feature.dev.pypi-dependencies]
-avaframe = { path = "../../AvaFrame", editable = true }
+avaframe = { path = "../AvaFrame", editable = true }
 
 # default environment: pypi AvaFrame
 [tool.pixi.feature.prod.pypi-dependencies]
