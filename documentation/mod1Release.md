@@ -55,4 +55,4 @@ The resulting release area, together with intermediate results, is written to th
 -> Chris :)
 
 ---
-Go back to [main documentation](../../README.md).
+Go back to [main documentation](../README.md).

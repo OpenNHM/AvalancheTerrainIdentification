@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **autoATES model chain** (`workflows/runAutoAtesModelChain.py`) combines the `mod1Release`, `mod2Mobility` and
+The **autoATES model chain** (`../workflows/runAutoAtesModelChain.py`) combines the `mod1Release`, `mod2Mobility` and
 `mod3Map` modules with [AvaFrame::com4FlowPy](https://docs.avaframe.org/en/latest/moduleCom4FlowPy.html#) into a single
 workflow that computes an **Avalanche Terrain Exposure Scale (ATES)** map from a digital elevation model (DEM) and,
 optionally, a forest density layer:
@@ -12,7 +12,7 @@ optionally, a forest density layer:
 3. Simulate avalanche runout with `AvaFrame::com4FlowPy`.
 4. Classify the terrain into ATES classes with the `autoATES` classifier.
 
-The workflow is implemented in `autoAtesModelChainMain` (`workflows/runAutoAtesModelChain.py`).
+The workflow is implemented in `autoAtesModelChainMain` (`../workflows/runAutoAtesModelChain.py`).
 
 ---
 
@@ -22,13 +22,13 @@ The workflow is implemented in `autoAtesModelChainMain` (`workflows/runAutoAtesM
 
 Uses [`mod1Release`](mod1Release.md).
 
-1. **PRA delineation** — `praDelineationVeitinger.runPraDelineation` derives raw potential release areas from the DEM
+1. **PRA delineation**: `praDelineationVeitinger.runPraDelineation` derives raw potential release areas from the DEM
    (and, optionally, a forest mask), writing results to `Outputs/PraDelineation`.
-2. **PRA processing (polygonizing)** — `praProcessing.runPraProcessing` converts the raw PRA raster into polygons.
-3. **Subcatchments** — `praSubCatchments.runSubcatchments` derives subcatchments used to structure the release areas.
-4. **PRA segmentation** — `praSegmentation.runPraSegmentation` segments the polygons into individual, distinct release
+2. **PRA processing (polygonizing)**: `praProcessing.runPraProcessing` converts the raw PRA raster into polygons.
+3. **Subcatchments**: `praSubCatchments.runSubcatchments` derives subcatchments used to structure the release areas.
+4. **PRA segmentation**: `praSegmentation.runPraSegmentation` segments the polygons into individual, distinct release
    areas.
-5. **PRA rasterization** — `praPrepForFlowPy.runPraPrepForFlowPy` rasterizes the segmented release areas back to grids
+5. **PRA rasterization**: `praPrepForFlowPy.runPraPrepForFlowPy` rasterizes the segmented release areas back to grids
    required for `com4FlowPy`, writing a release-ID raster (`*-5-praID.tif`) and a release-area raster
    (`*-5-praAreaM.tif`) to `Work/praPrepForFlowPy`.
 
@@ -77,7 +77,7 @@ The workflow reads two configuration files:
 
 - **`atiCfg.ini`** (general project settings): defines `avalancheDirectory`, the path to the project folder containing
   the `Inputs`/`Outputs`/`Work` structure. Use a `local_atiCfg.ini` copy for your own setup (see the
-  main [README](../../README.md)).
+  main [README](../README.md)).
 - **`runAutoAtesModelChainCfg.ini`** (workflow settings): for each sub-module, an override section controls whether that
   module's own default configuration is used, or whether the parameter values defined in this workflow config file
   override it:
@@ -145,14 +145,20 @@ automatically by Step 1, unless matching files are already present (see the note
 
 ## How to Run
 
+For now, you also need to clone the [AvaFrame repository](https://github.com/OpenNHM/AvaFrame) in the same directory as
+AvaScenarioModelChain.
+
 ```bash
+git clone https://github.com/OpenNHM/AvaFrame.git
 cd [YOURDIR]/AvaScenarioModelChain
-pixi shell
+pixi shell --environment dev
 python workflows/runAutoAtesModelChain.py
 ```
 
-See the main [README](../../README.md) for full installation and setup instructions, including how to set up
+See the main [README](../README.md) for full installation and setup instructions, including how to set up
 `local_atiCfg.ini` and the `Inputs` folder.
+
+
 
 ---
 
@@ -163,4 +169,4 @@ For details on the individual processing steps and their parameters, refer to th
 
 ---
 
-Go back to [main documentation](../../README.md).
+Go back to [main documentation](../README.md).

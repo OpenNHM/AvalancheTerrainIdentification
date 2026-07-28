@@ -28,4 +28,4 @@ python workflows/runPlotParameterisation.py
 ```
 
 ---
-Go back to [main documentation](../../README.md).
+Go back to [main documentation](../README.md).

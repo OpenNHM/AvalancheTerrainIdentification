@@ -3,14 +3,14 @@
 ## Overview
 
 ## Overview
- 
-The **dynamic parameterization workflow** (`workflows/runDynamicParameterisation.py`) combines the `mod1Release`
+
+The **dynamic parameterization workflow** (`../workflows/runDynamicParameterisation.py`) combines the `mod1Release`
 and `mod2Mobility` modules to compute the mobility parameters `alpha`, `umax` and `exp` for a set of automatically
 delineated release areas.
 
 It can be used to create input parameters for a simulation run, e.g. with [AvaFrame::com4FlowPy](https://docs.avaframe.org/en/latest/moduleCom4FlowPy.html).
 
-The workflow is implemented in `dynamicParameterisationMain` (`workflows/runDynamicParameterisation.py`).
+The workflow is implemented in `dynamicParameterisationMain` (`../workflows/runDynamicParameterisation.py`).
  
 ---
  
@@ -60,7 +60,7 @@ The workflow reads two configuration files:
  
 - **`atiCfg.ini`** (general project settings): defines `avalancheDirectory`, the path to the project folder
   containing the `Inputs`/`Outputs`/`Work` structure. Use a `local_atiCfg.ini` copy for your own setup (see the
-  main [README](../../README.md)).
+  main [README](../README.md)).
 - **`runDynamicParameterisationCfg.ini`** (workflow settings): for each sub-module, an override section controls
   whether that module's own default configuration is used, or whether the parameter values defined in this
   workflow config file override it.
@@ -120,10 +120,10 @@ cd [YOURDIR]/AvaScenarioModelChain
 pixi shell
 python workflows/runDynamicParameterisation.py
 ```
- 
-See the main [README](../../README.md) for full installation and setup instructions, including how to set up
+
+See the main [README](../README.md) for full installation and setup instructions, including how to set up
 `local_atiCfg.ini` and the `Inputs` folder.
  
 ---
 
-Go back to [main documentation](../../README.md).
+Go back to [main documentation](../README.md).

@@ -15,20 +15,20 @@ classify avalanche terrain.
 
 ## Modules
 
-| Module         | Description                                                             | Documentation                                      |
-|----------------|-------------------------------------------------------------------------|----------------------------------------------------|
-| `mod1Release`  | Tools to delineate and segment release areas                            | [documentation](ati/documentation/mod1Release.md)  |
-| `mod2Mobility` | Preparation and parameterization for avalanche mobility simulations     | [documentation](ati/documentation/mod2Mobility.md) |
-| `mod3Map`      | Postprocessing tools to interpret, map and represent simulation results | [documentation](ati/documentation/mod3Map.md)      |
+| Module         | Description                                                             | Documentation                                  |
+|----------------|-------------------------------------------------------------------------|------------------------------------------------|
+| `mod1Release`  | Tools to delineate and segment release areas                            | [documentation](documentation/mod1Release.md)  |
+| `mod2Mobility` | Preparation and parameterization for avalanche mobility simulations     | [documentation](documentation/mod2Mobility.md) |
+| `mod3Map`      | Postprocessing tools to interpret, map and represent simulation results | [documentation](documentation/mod3Map.md)      |
 
 ### Workflows
 
 Suggestions for combining the individual modules into full processing chains:
 
-- [autoATES model chain](ati/documentation/workflowAutoAtesModelChain.md)
-- [Avalanche Scenario Model Chain](ati/documentation/workflowAvaScenarioModelChain.md)
-- [Dynamic Parameterization](ati/documentation/workflowDynamicParameterisation.md)
-- [Plots](ati/documentation/plots.md)
+- [autoATES model chain](documentation/workflowAutoAtesModelChain.md)
+- [Avalanche Scenario Model Chain](documentation/workflowAvaScenarioModelChain.md)
+- [Dynamic Parameterization](documentation/workflowDynamicParameterisation.md)
+- [Plots](documentation/plots.md)
 
 ---
 
