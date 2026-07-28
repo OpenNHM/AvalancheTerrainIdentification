@@ -116,12 +116,14 @@ For a given avalanche directory and simulation (`simhash`), `regionalThalweg2DPl
 
 These are example plots:
 ![ThalwegLocation.png](../data/mod01Plots/ThalwegLocation.png)
+
 **Figure 1:** `plotThalwegLocation`: Example of the location of an automatically generated avalanche thalweg. The
 centered thalweg (black) is extended upslope (blue) and downslope (green) to obtain a complete thalweg from release to
 runout. The line color indicates the local peak travel angle, while the magenta polygon outlines the release area. The
 background shows the hillshaded DEM with elevation contours.
 
 ![thalweg2D.png](../data/mod01Plots/thalweg2D.png)
+
 **Figure 2 (`plotThalweg2D`):** Example of a two-dimensional representation of the thalweg profile, showing elevation as
 a function of distance along the thalweg. The red line represents the energy line height along the thalweg.
 
