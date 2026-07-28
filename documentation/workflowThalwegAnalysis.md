@@ -145,11 +145,3 @@ python workflows/runThalwegAnalysis.py
 See the main [README](../README.md) for full installation and setup instructions.
 
 ---
-
-## Notes
-
-- The authoritative source for the exact workflow logic is the implementation in
-  `workflows/runThalwegAnalysis.py`.
-- For details on the individual processing steps, refer to the module documentation:
-  [`mod1Release`](mod1Release.md), [`mod2Mobility`](mod2Mobility.md),
-  [regional thalweg analysis](mod3Map.md).
