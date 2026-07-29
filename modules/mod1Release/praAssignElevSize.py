@@ -55,9 +55,9 @@ import numpy as np
 import rasterio
 from rasterio.mask import mask
 
-import ati.mod0Helper.dataUtils as dataUtils
-import ati.mod0Helper.regionUtils as regionUtils
-from ati.mod0Helper.cfgUtils import loadElevationBands, parseRangeCsv
+import modules.mod0Helper.dataUtils as dataUtils
+import modules.mod0Helper.regionUtils as regionUtils
+from modules.mod0Helper.cfgUtils import loadElevationBands, parseRangeCsv
 
 # ------------------ Logging setup ------------------ #
 log = logging.getLogger("avaframe.ati.praAssignElevSize")

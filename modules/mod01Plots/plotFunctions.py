@@ -3,7 +3,7 @@
 
 import numpy as np
 
-import ati.mod0Helper.dataUtils as dataUtils
+import modules.mod0Helper.dataUtils as dataUtils
 
 def getInputParameters(path, parameter):
     '''

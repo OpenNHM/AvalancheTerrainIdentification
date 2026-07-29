@@ -52,7 +52,7 @@ import pathlib
 import configparser
 import logging
 
-from ati.mod0Helper.cfgUtils import readConfig
+from modules.mod0Helper.cfgUtils import readConfig
 
 log = logging.getLogger(__name__)
 

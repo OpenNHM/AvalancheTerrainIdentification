@@ -49,9 +49,9 @@ import logging
 import geopandas as gpd
 import pathlib
 
-import ati
-import ati.mod0Helper.dataUtils as dataUtils
-from ati.mod0Helper.cfgUtils import parseRangeCsv
+import modules
+import modules.mod0Helper.dataUtils as dataUtils
+from modules.mod0Helper.cfgUtils import parseRangeCsv
 
 import avaframe.in1Data.getInput as getInput
 import avaframe.in3Utils.cfgUtils as cfgUtils
@@ -338,8 +338,8 @@ def runPraSegmentation(cfg, workFlowDir=None, avaDir=None):
 
 if __name__ == "__main__":
     # get main config file for avalanche dir
-    modPath = pathlib.Path(ati.__file__).resolve().parent
-    cfgNameFile = modPath / "atiCfg.ini"
+    modPath = pathlib.Path(modules.__file__).resolve().parent
+    cfgNameFile = modPath.parent / "atiCfg.ini"
     cfgMain = cfgUtils.getGeneralConfig(nameFile=cfgNameFile)
 
     # get praDelineation config file

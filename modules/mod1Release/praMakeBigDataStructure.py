@@ -54,7 +54,7 @@ import shutil
 import logging
 from typing import Optional
 
-import ati.mod0Helper.dataUtils as dataUtils
+import modules.mod0Helper.dataUtils as dataUtils
 
 log = logging.getLogger("avaframe.ati.praMakeBigDataStructure")
 

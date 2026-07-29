@@ -24,7 +24,7 @@ try:
 except Exception:
     _HAS_PYOGRIO = False
 
-import ati.mod0Helper.cfgUtils as cfgUtils
+import modules.mod0Helper.cfgUtils as cfgUtils
 
 log = logging.getLogger(__name__)
 PathLike = Union[str, pathlib.Path]

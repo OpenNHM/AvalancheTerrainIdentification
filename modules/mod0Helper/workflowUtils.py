@@ -173,8 +173,8 @@ def filterSingleTestDirs(cfg, dirs: list[pathlib.Path], stepLabel: str) -> list[
 def validateInputs(cfg, workFlowDir):
     """Check required rasters and resolve optional regional inputs."""
     import rasterio
-    from ati.mod0Helper import dataUtils
-    from ati.mod0Helper import regionUtils
+    from modules.mod0Helper import dataUtils
+    from modules.mod0Helper import regionUtils
 
     inputDir = pathlib.Path(workFlowDir["inputDir"])
     dem = cfg["MAIN"].get("DEM", "").strip()

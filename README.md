@@ -85,7 +85,7 @@ above for which input data is needed).
 Copy the general configuration file `atiCfg.ini`:
 
 ```bash
-cd ati
+cd modules
 cp atiCfg.ini local_atiCfg.ini
 ```
 
