@@ -43,7 +43,7 @@ Follow these steps to run a workflow.
   with your path from the installation steps):
 
 ```bash
-cd [YOURDIR]/AvaScenariosModelChain/ati
+cd [YOURDIR]/AvaScenariosModelChain/modules
 ```
 
 - Activate the environment:
@@ -73,7 +73,7 @@ in the ``local_atiCfg.ini`` (which is a copy of
 ``atiCfg.ini`` that you need to create).
 
 ```bash
-cd ati
+cd modules
 cp atiCfg.ini local_atiCfg.ini
 ```
 

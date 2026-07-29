@@ -9,9 +9,9 @@ import pathlib
 import avaframe.in3Utils.cfgUtils as cfgUtils
 from avaframe.in3Utils import logUtils
 
-import ati
-import ati.mod01Plots.out1SizeParameter as sizePlots
-import ati.mod2Mobility.compParams as compParams
+import modules
+import modules.mod01Plots.out1SizeParameter as sizePlots
+import modules.mod2Mobility.compParams as compParams
 
 def runAndSavePlots(savePlotPath=""):
     """
@@ -24,8 +24,8 @@ def runAndSavePlots(savePlotPath=""):
 
     if savePlotPath == "":
 
-        modPath = pathlib.Path(ati.__file__).resolve().parent
-        cfgNameFile = modPath / "atiCfg.ini"
+        modPath = pathlib.Path(modules.__file__).resolve().parent
+        cfgNameFile = modPath.parent / "atiCfg.ini"
         cfgMain = cfgUtils.getGeneralConfig(nameFile=cfgNameFile)
         avaDir = cfgMain["MAIN"]["avalancheDirectory"]
 

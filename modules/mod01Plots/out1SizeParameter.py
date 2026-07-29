@@ -4,11 +4,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ati.mod2Mobility import sizeParameters as sizePar
-from ati.mod2Mobility import muxi
-import ati.mod01Plots.plotFunctions as pF
-from ati.mod0Helper import dataUtils
-
+from modules.mod2Mobility import sizeParameters as sizePar
+from modules.mod2Mobility import muxi
+import modules.mod01Plots.plotFunctions as pF
+from modules.mod0Helper import dataUtils
 
 def plotRasterResult(path, axs, axs_idx, param, flowPyUid=''):
     '''

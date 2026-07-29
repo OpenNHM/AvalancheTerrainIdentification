@@ -56,8 +56,8 @@ from whitebox.whitebox_tools import WhiteboxTools
 import avaframe.in1Data.getInput as getInput
 import avaframe.in3Utils.cfgUtils as cfgUtils
 
-import ati
-import ati.mod0Helper.dataUtils as dataUtils
+import modules
+import modules.mod0Helper.dataUtils as dataUtils
 
 # ------------------ Setup ------------------ #
 
@@ -301,8 +301,8 @@ def runSubcatchments(cfg, workFlowDir=None, avaDir=None):
 
 if __name__ == "__main__":
     # get main config file for avalanche dir
-    modPath = pathlib.Path(ati.__file__).resolve().parent
-    cfgNameFile = modPath / "atiCfg.ini"
+    modPath = pathlib.Path(modules.__file__).resolve().parent
+    cfgNameFile = modPath.parent / "atiCfg.ini"
     cfgMain = cfgUtils.getGeneralConfig(nameFile=cfgNameFile)
 
     # get praDelineation config file

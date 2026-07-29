@@ -55,7 +55,7 @@ import rasterio
 from rasterio.mask import mask
 import fiona
 
-import ati.mod0Helper.dataUtils as dataUtils
+import modules.mod0Helper.dataUtils as dataUtils
 
 import sys
 from functools import partial

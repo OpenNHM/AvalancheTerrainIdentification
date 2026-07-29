@@ -69,33 +69,33 @@ from logging.handlers import MemoryHandler
 import workflows.runInitWorkDir as initWorkDir
 import workflows.runAvaScenModelChain as runAvaScenModelChain
 
-from ati.mod1Release import praSelection, praDelineationVeitinger as praDelineation
-from ati.mod1Release import praSubCatchments
-from ati.mod1Release import praProcessing
-from ati.mod1Release import praSegmentation
-from ati.mod1Release import praAssignElevSize
-from ati.mod1Release import praPrepForFlowPy
-from ati.mod1Release import praMakeBigDataStructure
+from modules.mod1Release import praSelection, praDelineationVeitinger as praDelineation
+from modules.mod1Release import praSubCatchments
+from modules.mod1Release import praProcessing
+from modules.mod1Release import praSegmentation
+from modules.mod1Release import praAssignElevSize
+from modules.mod1Release import praPrepForFlowPy
+from modules.mod1Release import praMakeBigDataStructure
 
 
-import ati.mod0Helper.cfgUtils as atiCfgUtils
-import ati.mod2Mobility.compParams as compParams
+import modules.mod0Helper.cfgUtils as atiCfgUtils
+import modules.mod2Mobility.compParams as compParams
 
-import ati.mod0Helper.workflowUtils as workflowUtils
-import ati.mod0Helper.dataUtils as dataUtils
+import modules.mod0Helper.workflowUtils as workflowUtils
+import modules.mod0Helper.dataUtils as dataUtils
 
 # ------------------ Component imports ----------------------------------- #
 
-import ati.mod0Helper.avaDirectory.avaDirBuildFromFlowPy as avaDirBuildFromFlowPy
-import ati.mod0Helper.avaDirectory.avaDirType as avaDirType
-import ati.mod0Helper.avaDirectory.avaDirResults as avaDirResults
+import modules.mod0Helper.avaDirectory.avaDirBuildFromFlowPy as avaDirBuildFromFlowPy
+import modules.mod0Helper.avaDirectory.avaDirType as avaDirType
+import modules.mod0Helper.avaDirectory.avaDirResults as avaDirResults
 
 # ------------------ AvaFrame interface ---------------------------------- #
 from avaframe import runCom4FlowPy
 import avaframe.in3Utils.cfgUtils as cfgUtils
 
 # ------------------ Environment setup ----------------------------------- #
-from ati.mod0Helper.cfgUtils import setupGdalEnv
+from modules.mod0Helper.cfgUtils import setupGdalEnv
 
 setupGdalEnv(verbose=True)
 

@@ -62,10 +62,10 @@ import avaframe.in1Data.getInput as getInput
 import avaframe.in3Utils.cfgUtils as cfgUtils
 
 
-import ati
-from ati.mod0Helper import dataUtils
-from ati.mod0Helper import regionUtils
-from ati.mod0Helper.cfgUtils import loadElevationBands
+import modules
+from modules.mod0Helper import dataUtils
+from modules.mod0Helper import regionUtils
+from modules.mod0Helper.cfgUtils import loadElevationBands
 
 # ------------------ Logging setup ------------------ #
 
@@ -346,7 +346,7 @@ if __name__ == "__main__":
     # get praDelineation config file
     cfg = cfgUtils.getModuleConfig(praDelineationVeitinger)
     # get main config file for avalanche dir
-    modPath = pathlib.Path(ati.__file__).resolve().parent
-    cfgNameFile = modPath / "atiCfg.ini"
+    modPath = pathlib.Path(modules.__file__).resolve().parent
+    cfgNameFile = modPath.parent / "atiCfg.ini"
     cfgMain = cfgUtils.getGeneralConfig(nameFile=cfgNameFile)
     runPraPrepForFlowPy(cfg, avaDir=cfgMain["MAIN"]["avalancheDirectory"])

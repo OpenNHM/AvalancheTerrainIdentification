@@ -112,8 +112,8 @@ If `constantExp is True`: `exp` is set to a fixed raster value `constantExpValue
 
 The Figures show various relationships of the default setting:
 
-![parameters_Vrel.png](../ati/mod01Plots/plots/parameters_Vrel.png)
-![sizeCrossCheck.png](../ati/mod01Plots/plots/sizeCrossCheck.png)
+![parameters_Vrel.png](../modules/mod01Plots/plots/parameters_Vrel.png)
+![sizeCrossCheck.png](../modules/mod01Plots/plots/sizeCrossCheck.png)
 
 The figures can be created for the own parameter configuration with:
 

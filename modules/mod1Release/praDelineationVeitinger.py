@@ -70,9 +70,9 @@ from numba import njit, prange
 import avaframe.in1Data.getInput as getInput
 import avaframe.in3Utils.cfgUtils as cfgUtils
 
-import ati
-import ati.mod0Helper.dataUtils as dataUtils
-import ati.mod1Release.praDelineationVeitinger as praDelineationVeitinger
+import modules
+import modules.mod0Helper.dataUtils as dataUtils
+import modules.mod1Release.praDelineationVeitinger as praDelineationVeitinger
 
 log = logging.getLogger("avaframe.ati.praDelineationVeitinger")
 
@@ -519,7 +519,7 @@ if __name__ == "__main__":
     # get praDelineation config file
     cfg = cfgUtils.getModuleConfig(praDelineationVeitinger)
     # get main config file for avalanche dir
-    modPath = pathlib.Path(ati.__file__).resolve().parent
-    cfgNameFile = modPath / "atiCfg.ini"
+    modPath = pathlib.Path(modules.__file__).resolve().parent
+    cfgNameFile = modPath.parent / "atiCfg.ini"
     cfgMain = cfgUtils.getGeneralConfig(nameFile=cfgNameFile)
     runPraDelineation(cfg, avaDir=cfgMain["MAIN"]["avalancheDirectory"])

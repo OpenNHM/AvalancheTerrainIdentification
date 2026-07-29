@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Create a GeoJSON boundary from the valid DEM footprint."""
 
-# python python ati/mod0Helper/demOutlineToGeojson.py /path/to/dem.tif
+# python python modules/mod0Helper/demOutlineToGeojson.py /path/to/dem.tif
 
 
 from __future__ import annotations

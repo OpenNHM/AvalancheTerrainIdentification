@@ -7,8 +7,8 @@ import time
 import avaframe.in3Utils.cfgUtils as cfgUtils
 from avaframe.in3Utils import logUtils
 
-from ati.mod0Helper import cfgUtils as atiCfgUtils
-from ati.mod0Helper.avaDirectory import avaDirectoryWorkflow
+from modules.mod0Helper import cfgUtils as atiCfgUtils
+from modules.mod0Helper.avaDirectory import avaDirectoryWorkflow
 import workflows.runAvaDirectory as runAvaDirectory
 
 

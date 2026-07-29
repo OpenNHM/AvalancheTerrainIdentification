@@ -10,10 +10,10 @@ from typing import Optional, Union
 
 import avaframe.in3Utils.cfgUtils as cfgUtils
 
-import ati
-import ati.mod0Helper.dataUtils as dataUtils
-import ati.mod2Mobility.sizeParameters as sP
-import ati.mod2Mobility.compParams as compParams
+import modules
+import modules.mod0Helper.dataUtils as dataUtils
+import modules.mod2Mobility.sizeParameters as sP
+import modules.mod2Mobility.compParams as compParams
 
 log = logging.getLogger("avaframe.ati.compParams")
 
@@ -189,8 +189,8 @@ if __name__ == "__main__":
     # get praDelineation config file
     cfg = cfgUtils.getModuleConfig(compParams)
     # get main config file for avalanche dir
-    modPath = pathlib.Path(ati.__file__).resolve().parent
-    cfgNameFile = modPath / "atiCfg.ini"
+    modPath = pathlib.Path(modules.__file__).resolve().parent
+    cfgNameFile = modPath.parent / "atiCfg.ini"
     cfgMain = cfgUtils.getGeneralConfig(nameFile=cfgNameFile)
 
     computeAndSaveParameters(cfgMain["MAIN"]["avalancheDirectory"], cfg)

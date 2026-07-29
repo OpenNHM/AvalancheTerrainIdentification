@@ -4,11 +4,10 @@ import logging
 import pathlib
 import time
 
-from ati.mod0Helper import workflowUtils
-from ati.mod0Helper.avaDirectory import avaDirBuildFromFlowPy
-from ati.mod0Helper.avaDirectory import avaDirResults
-from ati.mod0Helper.avaDirectory import avaDirType
-
+from modules.mod0Helper import workflowUtils
+from modules.mod0Helper.avaDirectory import avaDirBuildFromFlowPy
+from modules.mod0Helper.avaDirectory import avaDirResults
+from modules.mod0Helper.avaDirectory import avaDirType
 
 log = logging.getLogger(__name__)
 

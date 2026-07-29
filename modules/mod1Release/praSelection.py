@@ -52,8 +52,8 @@ import geopandas as gpd
 import rasterio.features
 from typing import cast
 
-import ati.mod0Helper.dataUtils as dataUtils
-import ati.mod0Helper.regionUtils as regionUtils
+import modules.mod0Helper.dataUtils as dataUtils
+import modules.mod0Helper.regionUtils as regionUtils
 
 log = logging.getLogger("avaframe.ati.praSelection")
 
