@@ -4,8 +4,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ati import in2Parameter as sizePar, in2Parameter as muxi
-import outPlots.plotFunctions as pF
+import ati.mod2Mobility.sizeParameters as sizePar
+import ati.mod2Mobility.muxi as muxi
+import ati.plots.plotFunctions as pF
 from ati.mod0Helper import dataUtils
 
 
