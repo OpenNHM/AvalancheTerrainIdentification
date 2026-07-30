@@ -32,6 +32,7 @@ PathLike = Union[str, pathlib.Path]
 # ----------------------------------------------------------------------
 # Generic helpers
 # ----------------------------------------------------------------------
+log = logging.getLogger("avaframe.ati.dataUtils")
 
 
 def relPath(path, cairosDir):

@@ -17,8 +17,7 @@ import pathlib
 from osgeo import gdal
 
 
-
-log = logging.getLogger(__name__)
+log = logging.getLogger("avaframe.ati.cfgUtils")
 
 # ----------------------------------------------------------------------
 # Basic config helpers
@@ -321,7 +320,6 @@ def writeRunManifest(cairosDir: Union[str, pathlib.Path],
     return outPath
 
 
-
 def extractAspect(filename: str) -> str:
     """
     Extract aspect (N/E/S/W) from filename like 'pra030secE-2200-2400-4.geojson'.
@@ -340,8 +338,6 @@ def hashGroup(bandLabel: str, sizeClass: int, aspect: str) -> str:
     h = int(hashlib.sha1(key.encode("utf-8")).hexdigest(), 16)
     group_num = 10 + (h % 90)  # ensures 10–99
     return f"{group_num:02d}"
-
-
 
 
 # ----------------------------------------------------------------------

@@ -55,7 +55,7 @@ from typing import cast
 import ati.mod0Helper.dataUtils as dataUtils
 import ati.mod0Helper.regionUtils as regionUtils
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("avaframe.ati.praSelection")
 
 # ----------------------------- IO Helpers -----------------------------
 

@@ -5,6 +5,7 @@ import pathlib
 import time
 
 import avaframe.in3Utils.cfgUtils as cfgUtils
+from avaframe.in3Utils import logUtils
 
 from ati.mod0Helper import cfgUtils as atiCfgUtils
 from ati.mod0Helper.avaDirectory import avaDirectoryWorkflow
@@ -58,8 +59,6 @@ def _resolveDirectories(cfg):
 def runAvaDirectoryMain():
     """Run AvaDirectory Steps 13–15 for one model-chain project root."""
     cfg = cfgUtils.getModuleConfig(runAvaDirectory, toPrint=False)
-    logLevel = cfg["WORKFLOW"].get("logLevel", "INFO").upper()
-    logging.getLogger().setLevel(getattr(logging, logLevel, logging.INFO))
 
     try:
         workFlowDir, flowPyResults = _resolveDirectories(cfg)
@@ -68,14 +67,15 @@ def runAvaDirectoryMain():
         return False
 
     avaDirOutput = pathlib.Path(workFlowDir["avaDirTypeDir"])
+
+    logName = "runAvaDirectory"
+    # Start logging
+    log = logUtils.initiateLogger(avaDirOutput, logName)
+    log.info("MAIN SCRIPT")
+    log.info("Current avalanche directory: %s", avaDirOutput)
+
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     runName = f"runAvaDirectory_{timestamp}"
-    logPath = avaDirOutput / f"{runName}.log"
-    fileHandler = logging.FileHandler(logPath, mode="w", encoding="utf-8")
-    fileHandler.setFormatter(
-        logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-    )
-    logging.getLogger().addHandler(fileHandler)
 
     log.info("AvaDirectory project root: %s", workFlowDir["cairosDir"])
     log.info("FlowPy search root: %s", workFlowDir["flowPySourceDir"])
@@ -101,5 +101,4 @@ def runAvaDirectoryMain():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s: %(message)s")
     raise SystemExit(0 if runAvaDirectoryMain() else 1)

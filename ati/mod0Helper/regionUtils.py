@@ -8,7 +8,7 @@ import geopandas as gpd
 from ati.mod0Helper.demOutlineToGeojson import createDemOutlineGeojson
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("avaframe.ati.regionUtils")
 
 
 def _inputPath(inputDir, configuredPath):

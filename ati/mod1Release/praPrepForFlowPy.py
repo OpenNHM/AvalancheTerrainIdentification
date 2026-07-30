@@ -69,9 +69,8 @@ from ati.mod0Helper.cfgUtils import loadElevationBands
 
 # ------------------ Logging setup ------------------ #
 
-log = logging.getLogger(__name__)
-logging.getLogger("pyogrio").setLevel(logging.ERROR)
-logging.getLogger("fiona").setLevel(logging.ERROR)
+log = logging.getLogger("avaframe.ati.praPrepForFlowPy")
+
 
 # ------------------ Minimal helpers ------------------ #
 

@@ -20,7 +20,7 @@ from shapely.ops import unary_union
 from shapely.validation import make_valid
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("avaframe.ati.demOutlineToGeojson")
 
 
 # --- Geometry helpers --- #

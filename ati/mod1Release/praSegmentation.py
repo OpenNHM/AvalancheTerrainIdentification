@@ -56,9 +56,8 @@ from ati.mod0Helper.cfgUtils import parseRangeCsv
 import avaframe.in1Data.getInput as getInput
 import avaframe.in3Utils.cfgUtils as cfgUtils
 
-log = logging.getLogger(__name__)
-logging.getLogger("pyogrio").setLevel(logging.ERROR)
-logging.getLogger("fiona").setLevel(logging.ERROR)
+log = logging.getLogger("avaframe.ati.praSegmentation")
+
 
 # ------------------ Helper functions ------------------ #
 

@@ -61,10 +61,9 @@ import ati.mod0Helper.dataUtils as dataUtils
 
 # ------------------ Setup ------------------ #
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("avaframe.ati.praSubCatchments")
 wbt = WhiteboxTools()
 
-logging.getLogger("pyogrio").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", category=RuntimeWarning, module=r"pyogrio\..*")
 
 # ------------------ Utility Functions ------------------ #

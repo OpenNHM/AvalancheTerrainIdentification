@@ -56,9 +56,8 @@ from typing import Optional
 
 import ati.mod0Helper.dataUtils as dataUtils
 
-log = logging.getLogger(__name__)
-logging.getLogger("pyogrio").setLevel(logging.ERROR)
-logging.getLogger("fiona").setLevel(logging.ERROR)
+log = logging.getLogger("avaframe.ati.praMakeBigDataStructure")
+
 
 def _discoverInputFolder(workFlowDir) -> str:
     """Return the flat Step-07 output directory containing per-(band,size) files."""

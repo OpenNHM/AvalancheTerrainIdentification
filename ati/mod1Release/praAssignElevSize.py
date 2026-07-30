@@ -60,10 +60,8 @@ import ati.mod0Helper.regionUtils as regionUtils
 from ati.mod0Helper.cfgUtils import loadElevationBands, parseRangeCsv
 
 # ------------------ Logging setup ------------------ #
+log = logging.getLogger("avaframe.ati.praAssignElevSize")
 
-log = logging.getLogger(__name__)
-logging.getLogger("pyogrio").setLevel(logging.ERROR)
-logging.getLogger("fiona").setLevel(logging.ERROR)
 
 # ------------------ Minimal helpers ------------------ #
 
