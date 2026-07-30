@@ -6,9 +6,10 @@ import numpy as np
 import os
 
 import avaframe.in3Utils.cfgUtils as cfgUtils
-import ati.out1Plots.out1SizeParameter as sizePlots
-import ati.mobilityUtils.compParams as compParams
+from avaframe.in3Utils import logUtils
 
+import ati.plots.out1SizeParameter as sizePlots
+import ati.mod2Mobility.compParams as compParams
 
 def runAndSavePlots(savePlotPath=""):
     """
@@ -18,6 +19,19 @@ def runAndSavePlots(savePlotPath=""):
     cfg = cfgUtils.getModuleConfig(compParams)
     cfgSize = cfg["avaSIZE"]
     cfgPlot = cfg["PLOT"]
+
+    if savePlotPath == "":
+        plotPath = "data/plots"
+        if os.path.isdir(plotPath) == False:
+            os.makedirs(plotPath)
+    else:
+        plotPath = savePlotPath
+
+    logName = "runPlotParameterisation"
+    # Start logging
+    log = logUtils.initiateLogger(plotPath, logName)
+    log.info("MAIN SCRIPT")
+    log.info("Current avalanche directory: %s", plotPath)
 
     if cfgPlot.getfloat("elevationMin") != cfgPlot.getfloat("elevationMax"):
         elevation = np.linspace(
@@ -31,13 +45,6 @@ def runAndSavePlots(savePlotPath=""):
         elevation = cfgPlot.getfloat("elevationMin")
     else:
         ARel = cfgPlot.getfloat("ARelMin")
-
-    if savePlotPath == "":
-        plotPath = "data/plots"
-        if os.path.isdir(plotPath) == False:
-            os.makedirs(plotPath)
-    else:
-        plotPath = savePlotPath
 
     if ARel is not None:
         crossplot = sizePlots.plotCrossCheck(cfgSize, ARel=ARel, elevation=elevation)

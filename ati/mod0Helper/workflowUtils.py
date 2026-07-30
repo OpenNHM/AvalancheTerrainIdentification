@@ -55,7 +55,7 @@ import time
 from contextlib import contextmanager
 from logging.handlers import MemoryHandler
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("avaframe.ati.workflowUtils")
 
 # ------------------ Step control helpers ------------------ #
 
@@ -233,7 +233,6 @@ def validateInputs(cfg, workFlowDir):
     return True
 
 
-
 def runStep(stepKey: str, stepLabel: str, func, cfg, workFlowDir, stepStats, wf, masterFlag) -> bool:
     """Generic step runner with flag control, timing, and unified logging."""
     if not stepEnabled(wf, stepKey, masterFlag, default=False):
@@ -250,9 +249,6 @@ def runStep(stepKey: str, stepLabel: str, func, cfg, workFlowDir, stepStats, wf,
     except Exception:
         log.exception("Step %s: %s failed.", stepKey, stepLabel)
         return False
-
-
-
 
 
 # ------------------ FlowPy-specific helpers ------------------ #
@@ -303,7 +299,6 @@ def preserveLoggingForFlowPy():
             root_logger.removeHandler(flowpy_handler)
             flowpy_handler.close()
         root_logger.handlers = handlers_backup
-
 
 
 # ------------------ Resume-aware FlowPy leaf filtering ------------------ #

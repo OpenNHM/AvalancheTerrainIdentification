@@ -62,7 +62,7 @@ import ati.mod0Helper.dataUtils as dataUtils
 import avaframe.in1Data.getInput as getInput
 import avaframe.in3Utils.cfgUtils as cfgUtils
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("avaframe.ati.praProcessing")
 
 # ------------------ Cleaning ------------------ #
 

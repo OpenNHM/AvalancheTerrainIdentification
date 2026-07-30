@@ -74,7 +74,7 @@ import ati
 import ati.mod0Helper.dataUtils as dataUtils
 import ati.mod1Release.praDelineationVeitinger as praDelineationVeitinger
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("avaframe.ati.praDelineationVeitinger")
 
 
 # ------------------ Utility Functions ------------------ #
