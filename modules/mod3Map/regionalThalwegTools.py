@@ -70,7 +70,7 @@ def getRasterFile(path, variable="", ext=""):
                 files = sorted(list(path.glob(f"*{variable}.tif")))
             if len(files) == 0:
                 message = f"No raster file with {variable} found in {path}."
-                log.error(message)
+                # log.error(message)
                 raise FileNotFoundError(message)
             filePath = files[0]
         else:
@@ -243,7 +243,8 @@ def interpolateValueFromAveragedToExtended(averagedProfile, extendedProfile, var
 
     # Interpolate only on the requested section
     sExtShort = sExt[indStart:indEnd]
-    sExtShort = sExtShort - sExtShort[0]
+    if len(sExtShort) >= 1:
+        sExtShort = sExtShort - sExtShort[0]
 
     if len(sAvg) > 1:
         varExt[indStart:indEnd] = np.interp(
@@ -543,31 +544,31 @@ def getYlabelBoxplot(variable):
     """
 
     if variable == "velocity":
-        ylabel = "max. velocity [m/s]"
+        ylabel = "Max. Velocity [m/s]"
     elif variable == "impressure":
-        ylabel = "max. impact pressure [kPa]"
+        ylabel = "Max. Impact pressure [kPa]"
     elif variable == "travelLengthMax":
-        ylabel = "runout length [m]"
+        ylabel = "Runout length [m]"
     elif variable == "zDelta":
-        ylabel = "max. zDelta [m]"
+        ylabel = "Max. zDelta [m]"
     elif variable == "flux":
-        ylabel = "flux"
+        ylabel = "Flux"
     elif variable == "alphaIn":
-        ylabel = "input alpha angle [°]"
+        ylabel = "Input Alpha angle [°]"
     elif variable == "velocityMaxIn":
-        ylabel = "input max. velocity limit [m/s]"
+        ylabel = "Input Max. Velocity limit [m/s]"
     elif variable == "zdeltaMaxIn":
-        ylabel = "input max. velocity line height limit [m]"
+        ylabel = "Input Max. Velocity line height limit [m]"
     elif variable == "velocityAveraged":
-        ylabel = "max. velocity averaged [m/s]"
+        ylabel = "Max. Velocity averaged [m/s]"
     elif variable == "zdeltaAveraged":
-        ylabel = "max. velocity line height averaged [m]"
+        ylabel = "Max. Velocity line height averaged [m]"
     elif variable == "impressureAveraged":
-        ylabel = "max. impact pressure averaged [kPa]"
+        ylabel = "Max. Impact pressure averaged [kPa]"
     elif variable == "travelLengthAveraged":
-        ylabel = "max. travel length averaged [m]"
+        ylabel = "Max. Travel length averaged [m]"
     elif variable == "relArea":
-        ylabel = "release area [m²]"
+        ylabel = "Release area [m²]"
     else:
         message = f"{variable} is not a valid thalweg variable for the statistic boxplot"
         log.error(message)

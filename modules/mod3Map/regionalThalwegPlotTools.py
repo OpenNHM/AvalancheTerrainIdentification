@@ -110,8 +110,8 @@ def plotField(ax, fig, pathDict, variable):
     colorsS = ["#FFCEF4", "#FFA7A8", "#C19A1B", "#578B21", "#007054", "#004960", "#201158"]
     cmapS = cmapCrameri.batlow.reversed()
     levels = 7
-    bounds = np.linspace(
-        np.nanmin(dataConstrained), np.nanmax(dataConstrained), levels + 1
+    bounds = np.round(
+        np.linspace(np.nanmin(dataConstrained), np.nanmax(dataConstrained), levels + 1)
     )  # Define boundaries
     norm = BoundaryNorm(bounds, ncolors=cmapS.N, clip=True)  # Create a norm based on the boundaries
 
@@ -370,46 +370,70 @@ def makeThalwegPlot(ax, dataThalweg, pathDict, colorPra=""):
     return ax
 
 
-def plotBoxplot(pathDict, cfg, title=""):
+def plotBoxplot(pathDictList, cfg, title=""):
     """
-    shows and potentially saves Violinplot and Boxplot
+    shows and potentially saves Violinplot and Boxplot for one or several study areas
 
     Parameters:
     -----------
-    path: str
-        OutputPath of the FlowPy simulation
-    dataNan: np.array
-        data that is analysed and plotted (can contain nans)
+    pathDictList: dict or list of dict
+        one pathDict (single study area) or a list of pathDicts
+        (one boxplot per study area, plotted side by side). Each pathDict should
+        contain "pathToOutput", "savePath", "titleVariables" (with "simHash"),
+        and optionally "studyAreaName" for the x-axis label.
+    cfg: configparser Object
+        contains configuration settings
     title: str
         title for the plot
     """
-    path = pathDict["pathToOutput"]
+    # allow calling with a single pathDict like before
+    if isinstance(pathDictList, dict):
+        pathDictList = [pathDictList]
+
     cfgGen = cfg["GENERAL"]
     cfgSize = cfg["SIZECLASS"]
     varName = cfgGen.get("statisticVariable")
     centerOf = cfgGen.get("centerOfVariable")
-    varLabel = None
     ylabel = tools.getYlabelBoxplot(varName)
 
-    dataNan = tools.getDataBoxplots(path, varName, centerOf, cfgGen.getfloat("rho"))
+    # --- collect data + labels for every study area ---
+    dataList = []
+    labels = []
+    for pathDict in pathDictList:
+        path = pathDict["pathToOutput"]
+        dataNan = tools.getDataBoxplots(path, varName, centerOf, cfgGen.getfloat("rho"))
+        data = np.delete(dataNan, np.where(np.isnan(dataNan)))
+        dataList.append(data)
+        areaName = pathDict.get("studyAreaName", pathDict["titleVariables"]["simHash"])
+        labels.append(f"{areaName}\n(n = {len(data)})")
 
-    data = np.delete(dataNan, np.where(np.isnan(dataNan)))
-    fig, ax2 = plt.subplots()  # figsize = [4,5])
-    # fig.tight_layout()
-    labels = [f" (n = {len(data)})"]
+    nGroups = len(dataList)
+    positions = np.arange(1, nGroups + 1)
+
+    fig, ax2 = plt.subplots(figsize=(max(4, 1.4 * nGroups + 1.5), 5))
+    fig.subplots_adjust(left=0.15, right=0.95, top=0.92, bottom=0.18)
     if cfgGen.getboolean("plotLogScale"):
         ax2.set_yscale("log")
-    ax2.violinplot([data])
-    ax2.boxplot([data], whis=0, widths=0.07, showfliers=False, medianprops={"color": "blue"})
-    ax2.set_xticks(np.arange(1, len(labels) + 1), labels=labels, fontsize=13)
-    ax2.set_xlim(0.25, len(labels) + 0.75)
+
+    ax2.violinplot(dataList, positions=positions)
+    ax2.boxplot(
+        dataList,
+        positions=positions,
+        whis=0,
+        widths=0.07,
+        showfliers=False,
+        medianprops={"color": "blue"},
+    )
+    ax2.set_xticks(positions, labels=labels, fontsize=13)
+    ax2.set_xlim(0.25, nGroups + 0.75)
 
     if cfgGen["boxplotYlimMin"] == "":
         cfgGen["boxplotYlimMin"] = "0"
     if cfgGen["boxplotYlimMax"] != "":
         ax2.set_ylim([cfgGen.getfloat("boxplotYlimMin"), cfgGen.getfloat("boxplotYlimMax")])
 
-    # Color background
+    # --- color background (size classes) - only depends on varName/ylim ---
+    varLabel = None
     if "travelLength" in varName:
         varLabel = "travelLength"
     if "impressure" in varName:
@@ -424,40 +448,18 @@ def plotBoxplot(pathDict, cfg, title=""):
 
         y_min, y_m = ax2.get_ylim()
         y_max = np.max([y_m, 1.1 * ysize4Max])
-        ax2.axhspan(0, ysize1Max, facecolor="#" + cfgSize["colorSize1"], alpha=0.2)  # Avalanche size 1
-        ax2.axhspan(
-            ysize1Max,
-            ysize2Max,
-            facecolor="#" + cfgSize["colorSize2"],
-            alpha=0.2,
-        )  # size 2
-        ax2.axhspan(
-            ysize2Max,
-            ysize3Max,
-            facecolor="#" + cfgSize["colorSize3"],
-            alpha=0.2,
-        )  # size 3
-        ax2.axhspan(
-            ysize3Max,
-            ysize4Max,
-            facecolor="#" + cfgSize["colorSize4"],
-            alpha=0.2,
-        )  # size 4
-        ax2.axhspan(ysize4Max, y_max, facecolor="#" + cfgSize["colorSize5"], alpha=0.2)  # size 5
+        ax2.axhspan(0, ysize1Max, facecolor="#" + cfgSize["colorSize1"], alpha=0.2)
+        ax2.axhspan(ysize1Max, ysize2Max, facecolor="#" + cfgSize["colorSize2"], alpha=0.2)
+        ax2.axhspan(ysize2Max, ysize3Max, facecolor="#" + cfgSize["colorSize3"], alpha=0.2)
+        ax2.axhspan(ysize3Max, ysize4Max, facecolor="#" + cfgSize["colorSize4"], alpha=0.2)
+        ax2.axhspan(ysize4Max, y_max, facecolor="#" + cfgSize["colorSize5"], alpha=0.2, zorder=2)
 
-        # if "impressure" in varName:
-        #    class_lab = "$C_{ip}$"
-        # elif varName == "path_area":
-        #   class_lab = "$B_{aa}$"
-        # elif "travelLengthMax" in varName:
-        #   class_lab = "$E_{rl}$"
-        # else:
         class_lab = ""
-
         y_min, y_m = ax2.get_ylim()
         y_max = np.max([y_m, 1.1 * ysize4Max])
+        textX = 0.4
         ax2.text(
-            0.4,
+            textX,
             0 + (ysize1Max * 0.75),
             f"{class_lab} 1",
             ha="center",
@@ -466,7 +468,7 @@ def plotBoxplot(pathDict, cfg, title=""):
             fontsize=13,
         )
         ax2.text(
-            0.4,
+            textX,
             ysize1Max + (ysize2Max - ysize1Max) / 2,
             f"{class_lab} 2",
             ha="center",
@@ -475,7 +477,7 @@ def plotBoxplot(pathDict, cfg, title=""):
             fontsize=13,
         )
         ax2.text(
-            0.4,
+            textX,
             ysize2Max + (ysize3Max - ysize2Max) / 2,
             f"{class_lab} 3",
             ha="center",
@@ -484,7 +486,7 @@ def plotBoxplot(pathDict, cfg, title=""):
             fontsize=13,
         )
         ax2.text(
-            0.4,
+            textX,
             ysize3Max + (ysize4Max - ysize3Max) / 2,
             f"{class_lab} 4",
             ha="center",
@@ -493,28 +495,30 @@ def plotBoxplot(pathDict, cfg, title=""):
             fontsize=13,
         )
         ax2.text(
-            0.4,
+            textX,
             ysize4Max + (y_max - ysize4Max) / 5,
             f"{class_lab} 5",
             ha="center",
             va="center",
             color="#B22222",
             fontsize=13,
+            zorder=5,
         )
-        ax2.text(0.4,
-                 y_m,
-                 f"Avalanche\nsize",
-                 ha="center",
-                 va="top",
-                 color="gray",
-                 bbox=dict(
-                     facecolor="#ededed",
-                     alpha=0.5,  # transparency (0 = fully transparent, 1 = opaque)
-                     edgecolor="none"
-                 ),
-                 fontsize=12, )
+        ax2.text(
+            textX + 0.23,
+            0.98,
+            "Avalanche\nsize",
+            transform=ax2.get_xaxis_transform(),
+            ha="center",
+            va="top",
+            color="gray",
+            bbox=dict(facecolor="#ededed", alpha=0.7, edgecolor="none"),
+            fontsize=12,
+            zorder=3,
+        )
         ax2.set_yticks([ysize1Max, ysize2Max, ysize3Max, ysize4Max])
         ax2.set_yticklabels([ysize1Max, ysize2Max, ysize3Max, ysize4Max], fontsize=13)
+        ax2.minorticks_off()
 
     if varName == "alphaIn":
         ax2.set_ylim([19, 36])
@@ -522,14 +526,15 @@ def plotBoxplot(pathDict, cfg, title=""):
         ax2.set_ylim([-1, 50])
 
     plt.ylabel(ylabel, fontsize=13)
-
-    if title == "":
+    if title == "" and len(pathDictList) == 1:
         title = f"thalwege {centerOf}"
     plt.title(title)
     plt.grid(True)
-    savePath = pathDict["savePath"]
-    simhash = pathDict["titleVariables"]["simHash"]
-    filename = f"ThalwegStatistic_{simhash}_{varName}_{centerOf}.png"
+
+    # --- save: combine info from all study areas ---
+    savePath = pathDictList[0]["savePath"]
+    simhashCombined = "-".join(pd["titleVariables"]["simHash"] for pd in pathDictList)
+    filename = f"ThalwegStatistic_{simhashCombined}_{varName}_{centerOf}.png"
     fig.savefig(savePath / filename)
     log.info(f"Saved boxplot path as {savePath / filename}")
 

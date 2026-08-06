@@ -8,18 +8,18 @@ import avaframe.in3Utils.cfgUtils as cfgUtils
 from avaframe.in3Utils import cfgHandling
 from avaframe.in3Utils import logUtils
 
-import ati
-import ati.mod0Helper.dataUtils as dataUtils
-import ati.mod1Release.praDelineationVeitinger as praDelineationVeitinger
-import ati.mod1Release.praProcessing as praProcessing
-import ati.mod1Release.praSubCatchments as praSubCatchments
-import ati.mod1Release.praSegmentation as praSegmentation
-import ati.mod1Release.praPrepForFlowPy as praPrepForFlowPy
-import ati.mod2Mobility.compParams as compParams
-import ati.mod3Map.regionalThalwegAnalysis as regionalThalwegAnalysis
+import modules
+import modules.mod0Helper.dataUtils as dataUtils
+import modules.mod1Release.praDelinemodulesonVeitinger as praDelineationVeitinger
+import modules.mod1Release.praProcessing as praProcessing
+import modules.mod1Release.praSubCatchments as praSubCatchments
+import modules.mod1Release.praSegmentation as praSegmentation
+import modules.mod1Release.praPrepForFlowPy as praPrepForFlowPy
+import modules.mod2Mobility.compParams as compParams
+import modules.mod3Map.regionalThalwegAnalysis as regionalThalwegAnalysis
 import workflows.runThalwegAnalysis as runThalwegAnalysis
 
-log = logging.getLogger("ati.workflows.runDynamicParameterisation")
+log = logging.getLogger("modules.workflows.runDynamicParameterisation")
 
 def thalwegAnalysisMain(avaDir=None, cfgThalwegAnalysis=None):
     """
@@ -35,8 +35,8 @@ def thalwegAnalysisMain(avaDir=None, cfgThalwegAnalysis=None):
     cfgThalwegAnalysis: configparser object
         setup
     """
-    modPath = pathlib.Path(ati.__file__).resolve().parent
-    cfgNameFile = modPath / "atiCfg.ini"
+    modPath = pathlib.Path(modules.__file__).resolve().parent
+    cfgNameFile = modPath.parent / "atiCfg.ini"
     cfgMain = cfgUtils.getGeneralConfig(nameFile=cfgNameFile)
 
     if avaDir is None:

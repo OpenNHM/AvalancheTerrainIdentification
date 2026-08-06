@@ -20,7 +20,7 @@ from avaframe.out3Plot import outCom3Plots
 log = logging.getLogger("avaframe.modules.regionalThalwegAnalysis")
 
 
-def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash=""):
+def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash="", studyAreaName=None):
     """
     read in Input data and general function for 2D thalweg plot
 
@@ -57,6 +57,8 @@ def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash=""):
     savePath = avalanchedir / "Outputs" / "regionalThalwegPlot"
     fU.makeADir(savePath)
     pathDict = {"avalancheDir": avalanchedir, "pathToOutput": pathToOutput, "savePath": savePath}
+    if studyAreaName is not None:
+        pathDict["studyAreaName"] = studyAreaName
 
     demDict = gI.readDEM(avalanchedir)
     # TODO: Check if flipping DEM is needed!(gI.readDem flips the raster.)
@@ -190,6 +192,8 @@ def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash=""):
     if cfgFlags.getboolean("plotStatisticScatterPlot"):
         plotTools.plotScatterInputEffective(pathDict, cfg)
 
+    return pathDict
+
 
 def plotThalweg2D(pathDict, cfg, dataThalweg, onlyField=False):
     """
@@ -238,7 +242,7 @@ def plotThalweg2D(pathDict, cfg, dataThalweg, onlyField=False):
 
     # PLOT
     if onlyField:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(10, 8))
         fig, ax = plotTools.makeFieldPlot(ax, fig, cfg, pathDict, x, y, dataThalweg)
     else:
         fig, axs = plt.subplots(2, 1)
