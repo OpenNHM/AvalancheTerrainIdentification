@@ -16,7 +16,8 @@ from skimage import morphology
 import scipy.ndimage
 
 from ati.mod3Map import autoATESClassifier
-import ati.mod0Helper.dataUtils as dataUtils
+from modules.mod3Map import autoATESClassifier
+import modules.mod0Helper.dataUtils as dataUtils
 
 import avaframe.in3Utils.cfgUtils as cfgUtils
 import avaframe.in1Data.getInput as getInput
