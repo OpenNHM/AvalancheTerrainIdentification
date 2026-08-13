@@ -405,6 +405,7 @@ def plotBoxplot(pathDictList, cfg, title=""):
         data = np.delete(dataNan, np.where(np.isnan(dataNan)))
         dataList.append(data)
         areaName = pathDict.get("studyAreaName", pathDict["titleVariables"]["simHash"])
+        print(areaName, " : ", np.nanmedian(data))
         labels.append(f"{areaName}\n(n = {len(data)})")
 
     nGroups = len(dataList)
@@ -423,6 +424,7 @@ def plotBoxplot(pathDictList, cfg, title=""):
         widths=0.07,
         showfliers=False,
         medianprops={"color": "blue"},
+        zorder=5,
     )
     ax2.set_xticks(positions, labels=labels, fontsize=13)
     ax2.set_xlim(0.25, nGroups + 0.75)
@@ -436,23 +438,34 @@ def plotBoxplot(pathDictList, cfg, title=""):
     varLabel = None
     if "travelLength" in varName:
         varLabel = "travelLength"
-    if "impressure" in varName:
+        sizeName = "Runout\nsize"
+    elif "impressure" in varName:
         varLabel = "impressure"
-    if "relArea" in varName:
+        sizeName = "Destructive\nsize"
+    elif "relArea" in varName:
         varLabel = "relArea"
+        sizeName = "Dimension\nsize"
+
+    tools.logOverallStatistic(dataList, cfgSize, varLabel)
+
     if varLabel is not None:
         ysize1Max = cfgSize.getint(f"{varLabel}Size1Max")
         ysize2Max = cfgSize.getint(f"{varLabel}Size2Max")
         ysize3Max = cfgSize.getint(f"{varLabel}Size3Max")
         ysize4Max = cfgSize.getint(f"{varLabel}Size4Max")
 
+        ysize1MaxCom = cfgSize.getint(f"{varLabel}Size1MaxCom")
+        ysize2MaxCom = cfgSize.getint(f"{varLabel}Size2MaxCom")
+        ysize3MaxCom = cfgSize.getint(f"{varLabel}Size3MaxCom")
+        ysize4MaxCom = cfgSize.getint(f"{varLabel}Size4MaxCom")
+
         y_min, y_m = ax2.get_ylim()
         y_max = np.max([y_m, 1.1 * ysize4Max])
-        ax2.axhspan(0, ysize1Max, facecolor="#" + cfgSize["colorSize1"], alpha=0.2)
-        ax2.axhspan(ysize1Max, ysize2Max, facecolor="#" + cfgSize["colorSize2"], alpha=0.2)
-        ax2.axhspan(ysize2Max, ysize3Max, facecolor="#" + cfgSize["colorSize3"], alpha=0.2)
-        ax2.axhspan(ysize3Max, ysize4Max, facecolor="#" + cfgSize["colorSize4"], alpha=0.2)
-        ax2.axhspan(ysize4Max, y_max, facecolor="#" + cfgSize["colorSize5"], alpha=0.2, zorder=2)
+        ax2.axhspan(0, ysize1Max, facecolor="#" + cfgSize["colorSize1"], alpha=0.15, zorder=1)
+        ax2.axhspan(ysize1Max, ysize2Max, facecolor="#" + cfgSize["colorSize2"], alpha=0.15, zorder=1)
+        ax2.axhspan(ysize2Max, ysize3Max, facecolor="#" + cfgSize["colorSize3"], alpha=0.15, zorder=1)
+        ax2.axhspan(ysize3Max, ysize4Max, facecolor="#" + cfgSize["colorSize4"], alpha=0.15, zorder=1)
+        ax2.axhspan(ysize4Max, y_max, facecolor="#" + cfgSize["colorSize5"], alpha=0.15, zorder=1)
 
         class_lab = ""
         y_min, y_m = ax2.get_ylim()
@@ -464,7 +477,7 @@ def plotBoxplot(pathDictList, cfg, title=""):
             f"{class_lab} 1",
             ha="center",
             va="center",
-            color="#008B8B",
+            color="#" + cfgSize["colorSize1"],
             fontsize=13,
         )
         ax2.text(
@@ -473,7 +486,7 @@ def plotBoxplot(pathDictList, cfg, title=""):
             f"{class_lab} 2",
             ha="center",
             va="center",
-            color="#4682B4",
+            color="#008000",
             fontsize=13,
         )
         ax2.text(
@@ -482,7 +495,7 @@ def plotBoxplot(pathDictList, cfg, title=""):
             f"{class_lab} 3",
             ha="center",
             va="center",
-            color="#6495ED",
+            color="#ff9a00",
             fontsize=13,
         )
         ax2.text(
@@ -491,7 +504,7 @@ def plotBoxplot(pathDictList, cfg, title=""):
             f"{class_lab} 4",
             ha="center",
             va="center",
-            color="#CD5C5C",
+            color="#" + cfgSize["colorSize4"],
             fontsize=13,
         )
         ax2.text(
@@ -500,14 +513,15 @@ def plotBoxplot(pathDictList, cfg, title=""):
             f"{class_lab} 5",
             ha="center",
             va="center",
-            color="#B22222",
+            color="#" + cfgSize["colorSize5"],
             fontsize=13,
             zorder=5,
         )
+
         ax2.text(
             textX + 0.23,
             0.98,
-            "Avalanche\nsize",
+            sizeName,
             transform=ax2.get_xaxis_transform(),
             ha="center",
             va="top",
@@ -517,7 +531,7 @@ def plotBoxplot(pathDictList, cfg, title=""):
             zorder=3,
         )
         ax2.set_yticks([ysize1Max, ysize2Max, ysize3Max, ysize4Max])
-        ax2.set_yticklabels([ysize1Max, ysize2Max, ysize3Max, ysize4Max], fontsize=13)
+        ax2.set_yticklabels([ysize1MaxCom, ysize2MaxCom, ysize3MaxCom, ysize4MaxCom], fontsize=13)
         ax2.minorticks_off()
 
     if varName == "alphaIn":

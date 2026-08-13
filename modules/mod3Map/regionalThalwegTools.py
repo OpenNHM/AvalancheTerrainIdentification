@@ -574,3 +574,69 @@ def getYlabelBoxplot(variable):
         log.error(message)
         raise ValueError(message)
     return ylabel
+
+
+def logOverallStatistic(dataList, cfgSize, varLabel):
+    """
+    Computes and logs summary statistics (median, mean, 25th/75th percentile)
+    over all data combined from every study area, and optionally logs the
+    relative distribution of the data across predefined size classes.
+
+    Parameters:
+    -----------
+    dataList: list of np.ndarray
+        list containing one array of data values per study area. All arrays
+        are concatenated into a single array before computing statistics.
+    cfgSize: configparser SectionProxy
+        configuration section containing the size class boundaries
+    varLabel: str or None
+        prefix used to look up the size class boundaries in cfgSize
+        (e.g. "y" -> "ySize1Max"). If None, the size class distribution
+        is skipped and only the overall statistics are logged.
+    """
+    dataAll = np.concatenate(dataList)
+
+    print(dataAll.shape)
+
+    log.info(f"Median: {np.median(dataAll)}")
+    log.info(f"Mean: {np.mean(dataAll)}")
+    log.info(f"25% percentile: {np.percentile(dataAll, 25)}")
+    log.info(f"75% percentile: {np.percentile(dataAll, 75)}")
+
+    # Distribution in classes
+    if varLabel is not None:
+        ysize1Max = cfgSize.getint(f"{varLabel}Size1Max")
+        ysize2Max = cfgSize.getint(f"{varLabel}Size2Max")
+        ysize3Max = cfgSize.getint(f"{varLabel}Size3Max")
+        ysize4Max = cfgSize.getint(f"{varLabel}Size4Max")
+
+        dataLen = len(dataAll)
+        lenSize0 = np.sum((dataAll == 0))
+        lenSize1 = np.sum((dataAll >= 0) & (dataAll < ysize1Max))
+        lenSize2 = np.sum((dataAll >= ysize1Max) & (dataAll < ysize2Max))
+        lenSize3 = np.sum((dataAll >= ysize2Max) & (dataAll < ysize3Max))
+        lenSize4 = np.sum((dataAll >= ysize3Max) & (dataAll < ysize4Max))
+        lenSize5 = np.sum((dataAll >= ysize4Max))
+
+        log.info(f"Relative Part in size 1: {lenSize1 / dataLen}")
+        log.info(f"Relative Part in size 2: {lenSize2 / dataLen}")
+        log.info(f"Relative Part in size 3: {lenSize3 / dataLen}")
+        log.info(f"Relative Part in size 4: {lenSize4 / dataLen}")
+        log.info(f"Relative Part in size 5: {lenSize5 / dataLen}")
+        log.info(f"Relative Part in size 0: {lenSize0 / dataLen}")
+
+        for i, data in enumerate(dataList):
+            dataLen = len(data)
+            lenSize0 = np.sum((data == 0))
+            lenSize1 = np.sum((data >= 0) & (data < ysize1Max))
+            lenSize2 = np.sum((data >= ysize1Max) & (data < ysize2Max))
+            lenSize3 = np.sum((data >= ysize2Max) & (data < ysize3Max))
+            lenSize4 = np.sum((data >= ysize3Max) & (data < ysize4Max))
+            lenSize5 = np.sum((data >= ysize4Max))
+
+            log.info(f"Study area {i}, Relative Part in size 1: {lenSize1 / dataLen}")
+            log.info(f"Study area {i},Relative Part in size 2: {lenSize2 / dataLen}")
+            log.info(f"Study area {i},Relative Part in size 3: {lenSize3 / dataLen}")
+            log.info(f"Study area {i},Relative Part in size 4: {lenSize4 / dataLen}")
+            log.info(f"Study area {i},Relative Part in size 5: {lenSize5 / dataLen}")
+            log.info(f"Study area {i},Relative Part in size 0: {lenSize0 / dataLen}")

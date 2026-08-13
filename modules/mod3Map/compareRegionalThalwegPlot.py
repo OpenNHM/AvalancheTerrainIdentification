@@ -78,7 +78,6 @@ def regionalThalwegBoxplotCompareMain(avalanchedirList, cfg=None, simhashList=No
 
     plotTools.plotBoxplot(pathDictList, cfg)
 
-    return pathDictList
 
 
 if __name__ == "__main__":
