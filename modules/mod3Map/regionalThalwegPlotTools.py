@@ -12,6 +12,7 @@ from matplotlib.patches import Patch
 import geopandas as gpd
 
 import modules.mod3Map.regionalThalwegTools as tools
+import modules.mod2Mobility.sizeParameters as sizeParams
 import avaframe.in2Trans.rasterUtils as rasterUtils
 import avaframe.in1Data.getInput as gI
 import avaframe.out3Plot.plotUtils as pU
@@ -72,8 +73,8 @@ def plotField(ax, fig, pathDict, variable):
     rowsMax = int(rowsMax)
     colsMin = int(colsMin)
     colsMax = int(colsMax)
-    dataConstrained = raster[rowsMin: rowsMax + 1, colsMin: colsMax + 1]
-    demConstrained = dem[rowsMin: rowsMax + 1, colsMin: colsMax + 1]
+    dataConstrained = raster[rowsMin : rowsMax + 1, colsMin : colsMax + 1]
+    demConstrained = dem[rowsMin : rowsMax + 1, colsMin : colsMax + 1]
     # praConstrained = rasterPra[rowsMin : rowsMax + 1, colsMin : colsMax + 1]
 
     data = np.ma.masked_where(dataConstrained == 0.0, dataConstrained)
@@ -88,7 +89,7 @@ def plotField(ax, fig, pathDict, variable):
     Ly = ny * cellSize
     Lx = nx * cellSize
 
-    (extentCellCenters, extentCellCorners, rowsMinPlot, rowsMaxPlot, colsMinPlot, colsMaxPlot) = (
+    extentCellCenters, extentCellCorners, rowsMinPlot, rowsMaxPlot, colsMinPlot, colsMaxPlot = (
         pU.createExtent(rowsMin, rowsMax, colsMin, colsMax, header)
     )
 
@@ -284,8 +285,8 @@ def makeThalwegPlot(ax, dataThalweg, pathDict, colorPra=""):
         path_effects=[pe.Stroke(linewidth=3, foreground="g"), pe.Normal()],
     )
     (thalweg,) = ax.plot(
-        sExtended[indStart: indEnd + 1],
-        zExtended[indStart: indEnd + 1],
+        sExtended[indStart : indEnd + 1],
+        zExtended[indStart : indEnd + 1],
         "-y.",
         label="z",
         lw=2,
@@ -761,3 +762,247 @@ def addReleaseAreaToPlot(ax, pathDict, colorPra, linewidth=1):
     else:
         log.info("No polygon file for a release area is found.")
     return ax
+
+
+def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
+    """
+    scatter plot with a linear regression line for
+    - effective runout angle vs. input alpha angle
+    - effective max. velocity vs. input max. velocity
+    One plot is created per study area (scatter + regression line), plus one
+    combined plot per variable pair showing only the regression lines of all
+    study areas together for comparison (no scatter points there).
+    A y = x reference line is added to every plot, and x- and y-axis share
+    the same limits so the y = x line is shown as a true diagonal.
+
+    For the velocity pair, size-class background shading is added, using the
+    same colors as plotBoxplot: horizontal bands for the effective max.
+    velocity (converted from the impressure size-class pressure limits), and
+    vertical bands for the input max. velocity (currently fixed values,
+    see TODO below). Both are clipped to the region below the y = x diagonal,
+    since they are shown starting from the left/bottom axis up to the
+    diagonal. Since the input velocity boundaries no longer depend on the
+    DEM, both shadings are identical for every study area and are therefore
+    also shown in the combined plot.
+
+    Parameters
+    ------------
+    pathDictList: list of dict
+        one pathDict per study area (as produced by regionalThalweg2DPlotMain),
+        must contain "pathToOutput", "savePath", "titleVariables" and
+        optionally "studyAreaName"
+    cfg: configparser Object
+        contains configuration settings
+    title: str
+        title prefix for the plots
+    """
+    if isinstance(pathDictList, dict):
+        pathDictList = [pathDictList]
+
+    cfgGen = cfg["GENERAL"]
+    cfgSize = cfg["SIZECLASS"]
+    centerOf = cfgGen.get("centerOfVariable")
+    rho = cfgGen.getfloat("rho")
+
+    varPairs = [
+        ("alphaIn", "alphaEff", "Input alpha angle [°]", "Effective runout angle [°]", "RunoutAngle"),
+        (
+            "velocityIn",
+            "velocityEff",
+            "Input max. velocity [m/s]",
+            "Effective max. velocity [m/s]",
+            "Velocity",
+        ),
+    ]
+
+    # collect data once per study area (reused for individual + combined plots)
+    allData = []
+    allNames = []
+    for pathDict in pathDictList:
+        data = tools.getEffectiveVsInputData(pathDict["pathToOutput"], centerOf)
+        allData.append(data)
+        allNames.append(pathDict.get("studyAreaName", pathDict["titleVariables"]["simHash"]))
+
+    savePath = pathDictList[0]["savePath"]
+    simhashCombined = "-".join(pd["titleVariables"]["simHash"] for pd in pathDictList)
+
+    sizeColors = [f"#{cfgSize[f'colorSize{i}']}" for i in range(1, 6)]
+
+    # --- horizontal (effective velocity) class boundaries from impressure size classes ---
+    yVelBoundaries = [
+        tools.pressure2velocity(cfgSize.getint(f"impressureSize{i}Max"), rho) for i in range(1, 5)
+    ]
+
+    # --- vertical (input velocity) class boundaries ---
+    # TODO: substitute that with sizeparams function
+    xVelBoundaries = [20, 35, 50, 65]
+
+    for xKey, yKey, xlabel, ylabel, fileTag in varPairs:
+
+        isVelocityPair = fileTag == "Velocity"
+
+        # --- determine shared axis limits across ALL study areas for this variable pair ---
+        xAllValid = (
+            np.concatenate([data[xKey][~np.isnan(data[xKey]) & ~np.isnan(data[yKey])] for data in allData])
+            if allData
+            else np.array([])
+        )
+        yAllValid = (
+            np.concatenate([data[yKey][~np.isnan(data[xKey]) & ~np.isnan(data[yKey])] for data in allData])
+            if allData
+            else np.array([])
+        )
+
+        if xAllValid.size > 0 and yAllValid.size > 0:
+            sharedMin = np.nanmin([xAllValid.min(), yAllValid.min()])
+            sharedMax = np.nanmax([xAllValid.max(), yAllValid.max()])
+            margin = 0.05 * (sharedMax - sharedMin) if sharedMax > sharedMin else 1.0
+            sharedMin -= margin
+            sharedMax += margin
+        else:
+            sharedMin, sharedMax = 0.0, 1.0
+
+        if isVelocityPair:
+            allBoundaryVals = yVelBoundaries + xVelBoundaries
+            sharedMax = max(sharedMax, max(allBoundaryVals) * 1.05)
+            yEdges = [sharedMin] + yVelBoundaries + [sharedMax]
+            xEdges = [sharedMin] + xVelBoundaries + [sharedMax]
+
+        # --- one scatter + regression plot per study area ---
+        for pathDict, data, areaName in zip(pathDictList, allData, allNames):
+            x, y = data[xKey], data[yKey]
+            mask = ~np.isnan(x) & ~np.isnan(y)
+            x, y = x[mask], y[mask]
+
+            fig, ax = plt.subplots()
+
+            if isVelocityPair:
+                _addSizeClassShading(ax, yEdges, sizeColors, sharedMin, sharedMax, axis="y")
+                _addSizeClassShading(ax, xEdges, sizeColors, sharedMin, sharedMax, axis="x")
+
+            ax.scatter(x, y, s=8, alpha=0.6, color="k", zorder=3, label=f"{areaName} (n = {len(x)})")
+
+            if len(x) > 1:
+                coeffs = np.polyfit(x, y, 1)
+                xFit = np.linspace(np.nanmin(x), np.nanmax(x), 100)
+                ax.plot(
+                    xFit,
+                    np.polyval(coeffs, xFit),
+                    "r--",
+                    zorder=4,
+                    label=f"fit: y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}",
+                )
+
+            ax.plot(
+                [sharedMin, sharedMax], [sharedMin, sharedMax], "k:", linewidth=1, zorder=4, label="y = x"
+            )
+
+            ax.set_xlim(sharedMin, sharedMax)
+            ax.set_ylim(sharedMin, sharedMax)
+            ax.set_aspect("equal", adjustable="box")
+
+            ax.set_xlabel(xlabel)
+            ax.set_ylabel(ylabel)
+            ax.set_title(f"{title} {areaName}".strip())
+            ax.legend()
+            ax.grid(True, zorder=0)
+
+            simhashArea = pathDict["titleVariables"]["simHash"]
+            filename = f"ThalwegRegression_{fileTag}_{simhashArea}_{centerOf}.png"
+            fig.savefig(pathDict["savePath"] / filename)
+            plt.close(fig)
+            log.info(f"Saved {fileTag} regression plot as {pathDict['savePath'] / filename}")
+
+        # --- combined plot: only the regression lines of all study areas, no scatter points ---
+        figComb, axComb = plt.subplots()
+
+        if isVelocityPair:
+            _addSizeClassShading(axComb, yEdges, sizeColors, sharedMin, sharedMax, axis="y")
+            _addSizeClassShading(axComb, xEdges, sizeColors, sharedMin, sharedMax, axis="x")
+
+        for data, areaName in zip(allData, allNames):
+            x, y = data[xKey], data[yKey]
+            mask = ~np.isnan(x) & ~np.isnan(y)
+            x, y = x[mask], y[mask]
+
+            if len(x) < 2:
+                log.info(f"Not enough data for {areaName} ({fileTag}) to fit a regression line.")
+                continue
+
+            coeffs = np.polyfit(x, y, 1)
+            xFit = np.linspace(np.nanmin(x), np.nanmax(x), 100)
+            axComb.plot(xFit, np.polyval(coeffs, xFit), zorder=4, label=f"{areaName} (n = {len(x)})")
+
+        axComb.plot(
+            [sharedMin, sharedMax], [sharedMin, sharedMax], "k:", linewidth=1, zorder=4, label="y = x"
+        )
+
+        axComb.set_xlim(sharedMin, sharedMax)
+        axComb.set_ylim(sharedMin, sharedMax)
+        axComb.set_aspect("equal", adjustable="box")
+
+        axComb.set_xlabel(xlabel)
+        axComb.set_ylabel(ylabel)
+        axComb.set_title(f"{title} comparison of study areas".strip())
+        axComb.legend()
+        axComb.grid(True, zorder=0)
+
+        filenameComb = f"ThalwegRegression_{fileTag}_{simhashCombined}_{centerOf}_comparison.png"
+        figComb.savefig(savePath / filenameComb)
+        plt.close(figComb)
+        log.info(f"Saved combined {fileTag} regression plot as {savePath / filenameComb}")
+
+
+def _addSizeClassShading(ax, edges, colors, sharedMin, sharedMax, axis):
+    """
+    add background shading for size classes, clipped to the region below
+    the y = x diagonal (same coloring style as the size class shading in
+    plotBoxplot, but as a triangular area instead of a full axhspan/axvspan)
+
+    Parameters
+    -----------
+    ax: matplotlib axis
+    edges: list of float
+        class boundaries including the outer axis limits, e.g.
+        [sharedMin, b1, b2, b3, b4, sharedMax] -> 5 classes
+    colors: list of str
+        one color per class (len(edges) - 1 colors)
+    sharedMin, sharedMax: float
+        shared axis limits (identical for x and y, since aspect is "equal")
+    axis: str
+        "y" for horizontal bands (classes defined along the y-axis, shading
+        fills from the left up to the diagonal), "x" for vertical bands
+        (classes defined along the x-axis, shading fills from the bottom
+        up to the diagonal)
+    """
+    xFine = np.linspace(sharedMin, sharedMax, 300)
+
+    if axis == "y":
+        for i in range(len(edges) - 1):
+            yLow, yHigh = edges[i], edges[i + 1]
+
+            # only shade the region left of y = x,
+            # i.e. between x = 0 and x = y
+            yValues = np.linspace(yLow, yHigh, 100)
+
+            for yValue in yValues:
+                xRight = min(yValue, sharedMax)
+
+                if xRight > sharedMin:
+                    ax.fill_between(
+                        [sharedMin, xRight],
+                        yValue,
+                        yValue,
+                        color=colors[i],
+                        alpha=0.15,
+                        zorder=1,
+                    )
+    else:
+        for i in range(len(edges) - 1):
+            xLow, xHigh = edges[i], edges[i + 1]
+            mask = (xFine >= xLow) & (xFine <= xHigh)
+            xBand = xFine[mask]
+            if xBand.size == 0:
+                continue
+            yUpper = np.clip(xBand, sharedMin, sharedMax)
+            ax.fill_between(xBand, sharedMin, yUpper, color=colors[i], alpha=0.15, zorder=1)

@@ -116,8 +116,27 @@ def velocity2pressure(velocity, rho):
     imppressure: numpy float or array
         computed pressure
     """
-    pressure = rho * velocity ** 2 * 1e-3
+    pressure = rho * velocity**2 * 1e-3
     return pressure
+
+
+def pressure2velocity(pressure, rho):
+    """compute velocity from impact pressure (inverse of velocity2pressure)
+
+    Parameters
+    --------------
+    pressure: numpy float or array
+        pressure values [kPa]
+    rho: float
+        density of snow
+
+    Returns
+    ----------------
+    velocity: numpy float or array
+        velocity corresponding to the given pressure
+    """
+    velocity = np.sqrt(pressure * 1e3 / rho)
+    return velocity
 
 
 def readThalwegData(path, titleDict):
@@ -186,8 +205,9 @@ def getOutFileNamePartly(titleDict, allThalwegs=False):
     return outFileNamePart
 
 
-def interpolateValueFromAveragedToExtended(averagedProfile, extendedProfile, variable, startValue=0., endValue=0.,
-                                           indStart=None, indEnd=None):
+def interpolateValueFromAveragedToExtended(
+    averagedProfile, extendedProfile, variable, startValue=0.0, endValue=0.0, indStart=None, indEnd=None
+):
     """
     Interpolate a variable from the averaged profile to the extended profile.
 
@@ -640,3 +660,72 @@ def logOverallStatistic(dataList, cfgSize, varLabel):
             log.info(f"Study area {i},Relative Part in size 4: {lenSize4 / dataLen}")
             log.info(f"Study area {i},Relative Part in size 5: {lenSize5 / dataLen}")
             log.info(f"Study area {i},Relative Part in size 0: {lenSize0 / dataLen}")
+
+
+def getEffectiveVsInputData(path, centerOf):
+    """
+    get paired input vs. effective values (runout angle and velocity) for every
+    thalweg, so they can be used for a scatter/regression plot
+
+    Parameters
+    -----------
+    path: pathlib Path
+        Thalweg-Output Path of the FlowPy simulation
+    centerOf: str
+        center of variable
+
+    Returns
+    -----------
+    data: dict
+        contains numpy arrays (one value per thalweg, same order for all keys):
+        alphaIn: input alpha angle [°]
+        alphaEff: effective runout angle [°]
+        velocityIn: input (model parameter) max. velocity [m/s]
+        velocityEff: effective max. velocity along the thalweg [m/s]
+    """
+    data = {"alphaIn": [], "alphaEff": [], "velocityIn": [], "velocityEff": []}
+
+    for filename in os.listdir(path / "thalwegData"):
+        if filename.startswith(f"extended_thalwegData_{centerOf}"):
+            filePath = path / "thalwegData" / filename
+            profile = np.load(filePath, allow_pickle="TRUE")
+            profileInPath, indInPath = getProfileInPath(path, profile)
+
+            if indInPath.size == 0 or "zdelta" not in profileInPath:
+                continue
+
+            z = profile["z"]
+            s = profile["s"]
+            zdelta = profile["zdelta"]
+
+            """
+
+            maskNan = np.ones(zdelta.shape, dtype=bool)
+            maskNan[indInPath] = False
+            zdelta[maskNan] = np.nan
+            s[maskNan] = np.nan
+            z[maskNan] = np.nan
+            """
+
+            # calculate effective runout angle
+            angle_rad = np.arctan((np.nanmax(z) - np.nanmin(z)) / (np.nanmax(s) - np.nanmin(s)))
+            angle_degrees = np.rad2deg(angle_rad)
+
+            if len(zdelta) == 0 or np.all(np.isnan(zdelta)):
+                continue
+
+            angleRad = np.arctan((np.nanmax(z) - np.nanmin(z)) / (np.nanmax(s) - np.nanmin(s)))
+            alphaEff = np.rad2deg(angleRad)
+
+            velocityIn = zDelta2velocity(profile["zDeltaMax"])
+            velocityEff = zDelta2velocity(np.nanmax(zdelta))
+
+            data["alphaIn"].append(profile["alpha"])
+            data["alphaEff"].append(angle_degrees)
+            data["velocityIn"].append(velocityIn)
+            data["velocityEff"].append(velocityEff)
+
+    for key in data:
+        data[key] = np.array(data[key], dtype=float)
+
+    return data
