@@ -77,7 +77,7 @@ def regionalThalwegBoxplotCompareMain(avalanchedirList, cfg=None, simhashList=No
         pathDictList.append(pathDict)
 
     plotTools.plotBoxplot(pathDictList, cfg)
-
+    plotTools.plotEffectiveVsInputScatter(pathDictList, cfg)
 
 
 if __name__ == "__main__":
