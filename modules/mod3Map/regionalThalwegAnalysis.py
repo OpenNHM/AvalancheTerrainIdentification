@@ -6,6 +6,8 @@ import copy
 
 import modules.mod3Map.regionalThalwegTools as tools
 import modules.mod3Map.regionalThalwegPlotTools as plotTools
+import modules.mod0Helper.helpFunctions as helper
+
 from avaframe.in3Utils import cfgHandling
 from avaframe.in3Utils import fileHandlerUtils as fU
 import avaframe.out3Plot.outAIMEC as outAIMEC
@@ -278,7 +280,7 @@ def plotDFAGenerationLocation(cfg, pathDict, profile, rasterVariable="fpTravelAn
     raster = rasterDict["rasterData"]
     raster = np.where(raster > 0, raster, 0)
     if rasterVariable == "velocityMax":
-        raster = tools.zDelta2velocity(raster)
+        raster = helper.zDelta2velocity(raster)
 
     dem = gI.readDEM(pathDict["avalancheDir"])
 

@@ -12,6 +12,7 @@ from matplotlib.patches import Patch
 import geopandas as gpd
 
 import modules.mod3Map.regionalThalwegTools as tools
+import modules.mod0Helper.helpFunctions as helper
 import avaframe.in2Trans.rasterUtils as rasterUtils
 import avaframe.in1Data.getInput as gI
 import avaframe.out3Plot.plotUtils as pU
@@ -62,7 +63,7 @@ def plotField(ax, fig, pathDict, variable):
         rasterDict = rasterUtils.readRaster(file)
         raster = rasterDict["rasterData"]
     if variable == "velocityMax":
-        raster = tools.zDelta2velocity(raster)
+        raster = helper.zDelta2velocity(raster)
 
     # rasterPraDict = rasterUtils.readRaster(praPath)
     # rasterPra = rasterPraDict["rasterData"]
