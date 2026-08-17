@@ -100,7 +100,7 @@ parameters as needed, analogous to the `local_atiCfg.ini` setup above.
 
 #### Hint:
 
-for the workflows/runAutoAtesModelChain.py workflow, you need to
+for the `runAutoAtesModelChain.py` and `runThalwegAnalysis.py` workflow, you need to
 clone [AvaFrame](https://github.com/OpenNHM/AvaFrame)
 in `[YOURDIR]`,
 then activate the dev environment:
