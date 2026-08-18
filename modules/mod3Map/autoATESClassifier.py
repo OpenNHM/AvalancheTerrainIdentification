@@ -15,7 +15,6 @@ import logging
 from skimage import morphology
 import scipy.ndimage
 
-from ati.mod3Map import autoATESClassifier
 from modules.mod3Map import autoATESClassifier
 import modules.mod0Helper.dataUtils as dataUtils
 

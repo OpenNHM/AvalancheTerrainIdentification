@@ -362,7 +362,10 @@ def plotMuXi(cfgSize, cfgPlot, size=np.linspace(2,5,7), elevation = np.linspace(
     ax1.set_ylabel('alpha [°]')
     ax2.set_ylabel('u_max [m/s]')
     ax1.set_xlabel('Avalanche size')
-    plt.title(f"alpha(size=2) = {cfgSize['alphaSize2']}°, $\Delta$ alpha = {cfgSize['deltaAlpha']}°, \n uMax(size=2) = {cfgSize['uMaxSize2']} m/s, $\Delta$ uMax = {cfgSize['deltaUMax']} m/s")
+    plt.title(
+        f"alpha(size=2) = {cfgSize['alphaSize2']}°, $\\Delta$ alpha = {cfgSize['deltaAlpha']}°, \n"
+        f"uMax(size=2) = {cfgSize['uMaxSize2']} m/s, $\\Delta$ uMax = {cfgSize['deltaUMax']} m/s"
+    )
 
     # ax2.spines["right"].set_edgecolor('b')
     ax1.spines['left'].set_edgecolor('red')

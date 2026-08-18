@@ -1,6 +1,4 @@
 # Workflow: Dynamic Parameterization
-[AvaFrame::com4FlowPy](https://docs.avaframe.org/en/latest/moduleCom4FlowPy.html)
-## Overview
 
 ## Overview
 
@@ -18,8 +16,8 @@ The workflow is implemented in `dynamicParameterisationMain` (`../workflows/runD
  
 ### 1. PRA Delineation and Preparation
  
-Uses [`mod1Release`](mod1Release.md). Identical to Step 1 of the
-[autoATES model chain](workflow_autoAtesModelChain.md#1-pra-delineation-and-preparation):
+Uses [`mod1Release`](mod1Release.md). This preparation is identical to Step 1 of the
+[autoATES model chain](workflowAutoAtesModelChain.md#1-pra-delineation-segmentation-and-preparation):
  
 1. **PRA delineation** — `praDelineationVeitinger.runPraDelineation` derives raw potential release areas from the
    DEM (and, optionally, a forest mask), writing results to `Outputs/PraDelineation`.
@@ -116,7 +114,7 @@ generated automatically by Step 1, unless matching files are already present (se
 ## How to Run
  
 ```bash
-cd [YOURDIR]/AvaScenarioModelChain
+cd [YOURDIR]/OpenNHM/AvalancheTerrainIdentification
 pixi shell
 python workflows/runDynamicParameterisation.py
 ```

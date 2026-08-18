@@ -41,28 +41,44 @@ Install [git](https://github.com/git-guides/install-git) and [pixi](https://pixi
 
 ### Setup
 
-Clone the `AvaScenarioModelChain` repository into a directory of your choice (`[YOURDIR]`) and change into it:
+Clone `AvalancheTerrainIdentification` and `AvaFrame` as sibling repositories:
 
 ```bash
-  cd [YOURDIR]
-  git clone https://github.com/OpenNHM/AvaScenarioModelChain.git
-  cd AvaScenarioModelChain
+  cd [YOURDIR]/OpenNHM
+  git clone https://github.com/OpenNHM/AvalancheTerrainIdentification.git
+  git clone https://github.com/OpenNHM/AvaFrame.git
+  cd AvalancheTerrainIdentification
 ```
+
+The workflows currently use the following AvaFrame branches:
+
+| Workflow | AvaFrame branch |
+|---|---|
+| `runAutoAtesModelChain.py` | `PS_FP_changeCfgRead` |
+| `runThalwegAnalysis.py` | `PS_FP_thalweg` |
+| `runAvaScenModelChain.py` | `master` |
+
+Use the branch required by the workflow you intend to run. The thalweg dependency and the use of `master` for the
+AvaScenarioModelChain are confirmed. The AutoATES requirement is retained from the existing documentation until its
+owner confirms otherwise.
 
 ### First Run
 
 Follow these steps to run a workflow.
 
-1. Change into the `AvaScenarioModelChain` directory (replace `[YOURDIR]` with the path used during installation):
+1. For this AutoATES example, select its documented AvaFrame branch and return to
+   `AvalancheTerrainIdentification`:
 
 ```bash
-  cd [YOURDIR]/AvaScenariosModelChain
+  cd [YOURDIR]/OpenNHM/AvaFrame
+  git switch PS_FP_changeCfgRead
+  cd ../AvalancheTerrainIdentification
 ```
 
-2. Activate the environment:
+2. Activate the development environment:
 
 ```bash
-  pixi shell
+  pixi shell --environment dev
 ```
 
 3. Run a workflow, e.g. the autoATES model chain:
@@ -108,3 +124,5 @@ then activate the dev environment:
 ```bash
 pixi shell --environment dev
 ```
+The development environment uses the sibling AvaFrame checkout in editable mode. Changing that checkout's branch
+therefore changes the AvaFrame implementation used by these workflows.

@@ -233,9 +233,20 @@ def validateInputs(cfg, workFlowDir):
     return True
 
 
-def runStep(stepKey: str, stepLabel: str, func, cfg, workFlowDir, stepStats, wf, masterFlag) -> bool:
+def runStep(
+    stepKey: str,
+    stepLabel: str,
+    func,
+    cfg,
+    workFlowDir,
+    stepStats,
+    wf,
+    masterFlag,
+    flagKey: str | None = None,
+) -> bool:
     """Generic step runner with flag control, timing, and unified logging."""
-    if not stepEnabled(wf, stepKey, masterFlag, default=False):
+    enabledKey = flagKey or stepKey
+    if not stepEnabled(wf, enabledKey, masterFlag, default=False):
         log.info("Step %s: ...%s skipped (flag is False)", stepKey, stepLabel)
         return True
 

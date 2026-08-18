@@ -52,6 +52,10 @@ def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash="", studyAreaName=None)
         _, simhash = tools.searchResFolder(avalanchedir, module)
         if simhash == "":
             simhash = cfg["GENERAL"].get("simHash")
+            if simhash == "":
+                message = "If there are multiple results folder, choose the simhash that is analysed."
+                log.error(message)
+                raise ValueError(message)
     else:
         cfg["GENERAL"]["simHash"] = simhash
 

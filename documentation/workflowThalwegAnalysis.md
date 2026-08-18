@@ -23,7 +23,7 @@ The workflow is implemented in `workflows/runThalwegAnalysis.py`.
 If `runFlowPy` is `True`, the workflow runs the following steps to prepare and execute an avalanche simulation, before
 analyzing its results in Step 2:
 
-1. **PRA delineation**: [`mod1Release`](mod1Release.md#pradelineationveitinger):
+1. **PRA delineation**: [`mod1Release`](mod1Release.md#step-01-pradelineationveitinger):
    `praDelineationVeitinger.runPraDelineation` derives raw
    potential release areas from the DEM (and, optionally, a forest mask).
 2. **PRA processing (polygonizing)**: [`mod1Release`](mod1Release.md): `praProcessing.runPraProcessing` converts the raw
@@ -39,8 +39,8 @@ analyzing its results in Step 2:
    `mod2Mobility`](mod2Mobility.md#computeandsaveparameters--deriving-the-mobility-parameters):
    `compParams.computeAndSaveParameters` computes the mobility parameters `alpha`, `umax` and `exp` for each release
    area, saved to `Inputs/ALPHA`, `Inputs/UMAX` and `Inputs/EXP`.
-7. **Avalanche simulation**: [
-   `AvaFrame::com4FlowPy`]([AvaFrame::com4FlowPy](https://docs.avaframe.org/en/latest/moduleCom4FlowPy.html#)), via
+7. **Avalanche simulation**:
+   [`AvaFrame::com4FlowPy`](https://docs.avaframe.org/en/latest/moduleCom4FlowPy.html), via
    `runCom4FlowPy.main`.
 
 The rasters and polygon generated in Step 5 are copied into the `Inputs` folder structure expected by the downstream
@@ -130,14 +130,15 @@ If `runFlowPy = False`, an existing `com4FlowPy` result (including its `thalwegD
 
 ## How to Run
 
-For now, you also need to clone the [AvaFrame repository](https://github.com/OpenNHM/AvaFrame) in the same directory as
-`AvaScenarioModelChain`, and check out the `PS_FP_thalweg` branch:
+Clone the [AvaFrame repository](https://github.com/OpenNHM/AvaFrame) as a sibling of
+`AvalancheTerrainIdentification` and use its `PS_FP_thalweg` branch. This branch provides
+`avaframe.ana5Utils.preparePathGeneral`, which is required by the thalweg-analysis modules.
 
 ```bash
 git clone https://github.com/OpenNHM/AvaFrame.git
-cd [YOURDIR]/AvaFrame
-git checkout PS_FP_thalweg
-cd ../AvaScenarioModelChain
+cd [YOURDIR]/OpenNHM/AvaFrame
+git switch PS_FP_thalweg
+cd ../AvalancheTerrainIdentification
 pixi shell --environment dev
 python workflows/runThalwegAnalysis.py
 ```

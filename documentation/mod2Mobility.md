@@ -2,12 +2,44 @@
 
 ## Overview
 
-The mod2Mobility module provides tools that derive the mobility parameters required by avalanche mobility simulation
-tools such
-as [AvaFrame::com4FlowPy]([AvaFrame::com4FlowPy](https://docs.avaframe.org/en/latest/moduleCom4FlowPy.html#)), and,
-conversely, tools to translate com4FlowPy simulation results back into an avalanche size for interpretation. Both
-directions are based on the same underlying avalanche-size parameterization, which depends on the release area and,
-optionally, on the local snow climate.
+The `mod2Mobility` module provides tools to derive the mobility parameters required by avalanche simulation tools such as [AvaFrame::com4FlowPy](https://docs.avaframe.org/en/latest/moduleCom4FlowPy.html). Conversely, it provides tools to translate `com4FlowPy` simulation results back into an avalanche size for interpretation.
+
+Both operations use the same underlying avalanche-size parameterization, which depends on the release area and, optionally, the local snow climate.
+
+`mod2Mobility` operates on an AvaFrame-compatible `avaDir` containing the standard `Inputs/` and `Outputs/` folders.
+
+For a single-scenario workflow, `avaDir` is the project directory itself:
+
+```text
+<avaDir>/
+├── Inputs/
+└── Outputs/
+```
+
+In the multi-scenario workflow, each size and flow-regime directory inside `workFlowDir` is treated as an independent `avaDir`:
+
+```text
+<workDir>/<project>/<ID>/
+└── 09_flowPyBigDataStructure/
+    └── <PRA-case>/
+        └── SizeN/
+            └── dry|wet/             # individual avaDir
+                ├── Inputs/
+                └── Outputs/
+```
+
+Adding support for using a single-scenario `avaDir` directly as input to `runAvaScenModelChain.py` remains an open development task.
+
+### Workflow Runners
+
+All `mod2Mobility` functions receive an `avaDir`. In the multi-scenario workflow, `workFlowDir` is used to locate the nested leaf directories, and each leaf is then passed to `mod2Mobility` as an individual `avaDir`.
+
+| Workflow runner | `mod2Mobility` function used | Directory passed |
+|---|---|---|
+| `runDynamicParameterisation.py` | `computeAndSaveParameters` | Single-scenario `avaDir` |
+| `runAutoAtesModelChain.py` | `computeAndSaveParameters` | Single-scenario `avaDir` |
+| `runThalwegAnalysis.py` | `computeAndSaveParameters` when `runFlowPy = True` | Single-scenario `avaDir` |
+| `runAvaScenModelChain.py` | `computeAndSaveParameters` and, optionally, `computeAndSaveSize` | Each nested `SizeN/dry\|wet` leaf `avaDir` discovered through `workFlowDir` |
 
 ## `compParams`
 
@@ -50,7 +82,7 @@ climate) can both be adjusted in the configuration file.
 
 ### 2. Release Volume and Avalanche Size
 
-A raster layer containing the release areas (in m²) is required (`Inputs/RelArea`). Given the release area `Arel`
+A raster layer containing the release areas (in m²) is required (`Inputs/RELArea`). Given the release area `Arel`
 and the thickness from Step 1, the release volume `Vrel` follows as:
 
 ```
@@ -65,9 +97,9 @@ Vrel = 5^(size - 2) · 1000
 size = 2 + log5( Arel · thickness · 10⁻³ )
 ```
 
-### 4. Mobility Parameters: `alpha`, `umax`, `exp`
+### 3. Mobility Parameters: `alpha`, `umax`, `exp`
 
-From the avalanche size, the three Flow-Py mobility parameters are computed. All three optionally depend on a
+From the avalanche size, the three FlowPy mobility parameters are computed. All three optionally depend on a
 temperature-based wet/dry blend of the size, see
 [Temperature-Dependent Wet/Dry Parameterization](#temperature-dependent-wetdry-parameterization) below.
 
@@ -106,16 +138,17 @@ exp(size) = expCoeff · expBase^size
 
 with default values `expCoeff = 75` and `expBase = 0.64`. Both can be adjusted via the configuration file.
 
-If `constantExp is True`: `exp` is set to a fixed raster value `constantExpValue`.
+If `constantExp = True`, `exp` is set to `constantExpValue`. When temperature dependence is also enabled,
+the mean temperature-dependent `sizeShiftExp` is added to this value.
 
 #### Default setting
 
-The Figures show various relationships of the default setting:
+The figures show the relationships produced by the default settings:
 
 ![parameters_Vrel.png](../modules/mod01Plots/plots/parameters_Vrel.png)
 ![sizeCrossCheck.png](../modules/mod01Plots/plots/sizeCrossCheck.png)
 
-The figures can be created for the own parameter configuration with:
+The figures can be created for a custom parameter configuration with:
 
 ``` 
 python workflows/runPlotParameterisation.py 
@@ -134,22 +167,23 @@ umax_wet(size)  = umax_dry(size + sizeShiftUmax)
 exp_wet(size)   = exp_dry(size + sizeShiftExp)
 ```
 
-The shifts are configurable via `sizeShiftAlpha`, `sizeShiftUmax` and `sizeShiftExp`, with default values
-`sizeShiftAlpha = 0.5`, `sizeShiftUmax = -0.75` and `sizeShiftExp = 0.5`.
+The shifts are configurable via `sizeShiftAlpha`, `sizeShiftUmax` and `sizeShiftExp`. The module configuration defaults
+to `sizeShiftAlpha = 0.5`, `sizeShiftUmax = -0.75` and `sizeShiftExp = 0.5`. The workflow configurations currently
+override `sizeShiftExp`; this value remains subject to a separate scientific review.
 
-Two additional rules apply:
+One additional rule applies:
 
 - **Lower bound on `umax`:** any computed value below `5 m/s` is clamped to `5 m/s`.
-- **Upper bound on size:** avalanche sizes larger than `4` are treated as `size = 4` when computing the mobility
-  parameters (i.e. the parameters saturate at the size-4 values).
+Avalanche size is capped only when `sizeMax` is configured. In the multi-scenario workflow, the directory builder
+separately limits wet-flow scenario folders to size 4 by default.
 
 ### Temperature-Dependent Wet/Dry Parameterization
 
 > **Note:** this temperature-dependent parameterization represents an initial idea and has not yet been fully
-> tested or validated; it should be complemented and verified before being relied on for using.
+> tested or validated. It should be verified before operational use.
 
 
-Rather than a fixed offset between "dry" and "wet" avalanches, `mod2Mobility` can blends between a cold/dry and a
+Rather than a fixed offset between "dry" and "wet" avalanches, `mod2Mobility` can blend between a cold/dry and a
 warm/wet parameterization continuously, based on an elevation-derived temperature.
 
 **Temperature profile** (`zToTemp`): temperature is either constant (`constantTemperature = True`, using
@@ -183,7 +217,7 @@ constant mode) it is applied only if `alphaDependendTemperature = True`.
 avalanche-size raster, which can help evaluate or interpret simulation results in terms of avalanche size.
 
 The variables to convert are configured via `resParamsToSize` (a `|`-separated list, e.g.
-`zDelta|fpTravelAngleMax|travelLength`). For each configured variable, the matching `com4FlowPy` output raster (s)
+`zDelta|fpTravelAngleMax|travelLength`). For each configured variable, the matching `com4FlowPy` output rasters
 for the given `avaDir` (and, if provided, `flowPyUid`) are located, and converted as follows (`0` and `-9999`
 values in the input raster are treated as nodata):
 
@@ -194,8 +228,8 @@ values in the input raster are treated as nodata):
 | `fpTravelAngleMax`, `fpTravelAngleMin`, `fpTravelAngle`  | `fpTravelAngle`       | Inverted via the `alpha(size)` relationship (without the temperature shift): `size = −(alphaSim − alphaSize2) / deltaAlpha + 2`                  |
 | `travelLength`, `travelLengthMax`, `travelLengthMin`     | `travelLength`        | Runoutlength-based **runout size** `size = (13 − sqrt(121 − 8·L)) / 2`, with `L = ln(travelLength / 6.5) / ln(1.5)` (`travelLengthToRunoutSize`) |
 
-Each resulting size raster is saved next to the corresponding simulation-result raster, in a `Size` subfolder, with
-`_sized` appended to the original file name.
+Each resulting size raster is written below `Outputs/com4FlowPy/sizeFiles/res_<flowpyHash>/`, with `_sized` appended
+to the original filename.
 
 > **Note:** the `zDelta` and travel-angle conversions use the base (cold/dry) `alpha`/`umax` relationships and do
 > not account for the temperature-dependent wet/dry shift described above.
@@ -238,7 +272,7 @@ following structure:
 └── Inputs/
     ├── digital elevation model (*.tif or *.asc)
     └── RELArea/
-        └── release areas in m² (.tif or *.asc)
+        └── release areas in m² (*.tif)
 ```
 
 `computeAndSaveSize` additionally requires the corresponding `com4FlowPy` result rasters (e.g. under
@@ -250,7 +284,7 @@ following structure:
     ├── com4FlowPy/
         └── peakFiles/
             └── res_<flowpyHash>/   # com4FlowPy simulation results (Step 3)
-                └── FlowPy result raster (*.asc or *.tif)
+                └── FlowPy result raster (*.tif)
 ```
 
 ## Output Files
@@ -261,7 +295,7 @@ run with
 
 ```text
 <avaDir>/
-└── Outputs/
+└── Inputs/
     ├── ALPHA/
     │   └── alpha.tif
     ├── UMAX/
@@ -270,13 +304,13 @@ run with
         └── exp.tif
 ```
 
-`computeAndSaveSize` saves each converted size raster alongside its source simulation raster, in a `Size`
-subfolder, e.g.:
+`computeAndSaveSize` saves each converted size raster in the corresponding `sizeFiles` result folder:
 
 ```text
-.../res_<flowpyHash>/
-      └── Size/
-          └── <result>_sized.tif
+<avaDir>/Outputs/com4FlowPy/
+└── sizeFiles/
+    └── res_<flowpyHash>/
+        └── <result>_sized.tif
 ```
 
 ---

@@ -1,4 +1,4 @@
-# AvaScenarioModelChain/in2Parameter/muxi.py
+# modules/mod2Mobility/muxi.py
 # Author: Paula Spannring (BFW)
 
 import numpy as np

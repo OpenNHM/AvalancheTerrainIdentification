@@ -33,14 +33,14 @@
 #     [ava*]      FlowPy parameterization, simulation and directory building (Steps 09–15)
 #
 # Consumes :
-#     com1PRA/            (Steps 01–08)
-#     avaDirectory/   (Steps 13–15)
+#     modules/mod1Release/                 (Steps 01–08)
+#     modules/mod0Helper/avaDirectory/     (Steps 13–15)
 #
 # Depends on :
 #     mod0Helper.cfgUtils         – config loading & GDAL/PROJ environment setup
 #     mod0Helper.workflowUtils    – unified workflow orchestration (stepEnabled, timers, logging)
 #     mod0Helper.dataUtils        – raster/vector I/O, compression utilities
-#     in2Parameter.compParams   – FlowPy parameter generation and size back-mapping
+#     mod2Mobility.compParams     – FlowPy parameter generation and size back-mapping
 #
 # Provides :
 #     Fully automated, resumable Avalanche Scenario Model Chain execution
@@ -191,22 +191,41 @@ def runAvaScenModelChainMain(workDir: str = "") -> bool:
     # ───────────────────────────────────────────────────────────────────────────────────────────
 
     praSteps = [
-        ("01", "PRA delineation", praDelineation.runPraDelineation),
-        ("02", "PRA selection", praSelection.runPraSelection),
-        ("03", "Subcatchments", praSubCatchments.runSubcatchments),
-        ("04", "PRA processing", praProcessing.runPraProcessing),
-        ("05", "PRA segmentation", praSegmentation.runPraSegmentation),
-        ("06", "PRA assign elevation & size", praAssignElevSize.runPraAssignElevSize),
-        ("07", "PRA → FlowPy preparation", praPrepForFlowPy.runPraPrepForFlowPy),
+        ("01", "praDelineation", "PRA delineation", praDelineation.runPraDelineation),
+        ("02", "praSelection", "PRA selection", praSelection.runPraSelection),
+        ("03", "praSubCatchments", "Subcatchments", praSubCatchments.runSubcatchments),
+        ("04", "praProcessing", "PRA processing", praProcessing.runPraProcessing),
+        ("05", "praSegmentation", "PRA segmentation", praSegmentation.runPraSegmentation),
+        (
+            "06",
+            "praAssignElevSize",
+            "PRA assign elevation & size",
+            praAssignElevSize.runPraAssignElevSize,
+        ),
+        (
+            "07",
+            "praPrepForFlowPy",
+            "PRA → FlowPy preparation",
+            praPrepForFlowPy.runPraPrepForFlowPy,
+        ),
         (
             "08",
+            "praMakeBigDataStructure",
             "Make Big Data Structure",
             praMakeBigDataStructure.runPraMakeBigDataStructure,
         ),
     ]
-    for stepKey, label, func in praSteps:
+    for stepKey, flagKey, label, func in praSteps:
         if not workflowUtils.runStep(
-            stepKey, label, func, cfg, workFlowDir, stepStats, workflowFlags, masterPra
+            stepKey,
+            label,
+            func,
+            cfg,
+            workFlowDir,
+            stepStats,
+            workflowFlags,
+            masterPra,
+            flagKey=flagKey,
         ):
             return False
 
@@ -277,17 +296,16 @@ def runAvaScenModelChainMain(workDir: str = "") -> bool:
             # -----------------------------------------------------------------
             avaDirs = workflowUtils.discoverAndFilterAvaDirs(cfg, workFlowDir, "Step 10")
 
-            # NEW: resumeFlowPyStep → skip leaves with existing Outputs/
+            # resumeFlowPyRun → skip leaves with existing Outputs/
             avaDirs = workflowUtils.filterAlreadyCompletedLeaves(cfg, avaDirs, workFlowDir, "Step 10")
 
             # No remaining dirs after resume filtering?
             if not avaDirs:
-                if workflowFlags.getboolean("resumeFlowPyStep", fallback=False):
+                if workflowFlags.getboolean("resumeFlowPyRun", fallback=False):
                     log.info(
                         "Step 10: All FlowPy leaves already completed → nothing to run "
-                        "(resumeFlowPyStep=True)."
+                        "(resumeFlowPyRun=True); continuing with downstream steps."
                     )
-                    return True
                 else:
                     log.error("Step 10: No FlowPy directories available; cannot continue.")
                     return False
@@ -447,18 +465,17 @@ if __name__ == "__main__":
         "__main__",
         "runAvaScenModelChain",
         "runInitWorkDir",
-        "mod0Helper.workflowUtils",
-        "avaDirectory.avaDirBuildFromFlowPy",
-        "in2Parameter",
-        "in2Parameter.compParams",
+        "avaframe.ati.workflowUtils",
+        "modules.mod0Helper.avaDirectory.avaDirBuildFromFlowPy",
+        "avaframe.ati.compParams",
     ]:
         logging.getLogger(name).setLevel(logging.INFO)
 
     # Silence noisy AvaFrame internals
     for name in [
-        "in2Parameter.sizeParameters",
+        "avaframe.ati.sizeParameters",
         "avaframe.com4FlowPy.splitAndMerge",
-        "mod0Helper.cfgUtils",
+        "avaframe.ati.cfgUtils",
         "avaframe.in3Utils.cfgUtils",
         "avaframe.com4FlowPy.cfgUtils",
     ]:

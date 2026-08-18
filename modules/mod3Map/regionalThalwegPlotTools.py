@@ -322,12 +322,12 @@ def makeThalwegPlot(ax, dataThalweg, pathDict, colorPra=""):
         label="$v_{max}$ = " + str(np.round(np.sqrt(zdelta_max[0] * 2 * 9.81), 1)) + " m/s",
     )
     (p6,) = ax.plot(
-        [s[indInPath[0]], s[-1]],
-        [z[indInPath[0]], z[-1]],
-        color="lightgrey",
+        [s[indInPath[0]], s[indInPath[-1]]],
+        [z[indInPath[0]], z[indInPath[-1]]],
+        color="k",
         linestyle="--",
-        linewidth=1,
-        label=rf"""$\alpha_{{eff}}$ = {np.round(angle_degrees, 1)}°""",
+        linewidth=1.1,
+        label=rf"""$\alpha_{{eff}}$ = {np.round(angle_degrees, 1)}°""",zorder=20
     )
 
     (p7,) = ax.plot(

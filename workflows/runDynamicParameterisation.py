@@ -15,11 +15,8 @@ import modules.mod1Release.praSegmentation as praSegmentation
 import modules.mod1Release.praPrepForFlowPy as praPrepForFlowPy
 import modules.mod2Mobility.compParams as compParams
 
-<<<<<<< HEAD
-=======
 log = logging.getLogger("modules.workflows.runDynamicParameterisation")
 
->>>>>>> 3b0e7ec (rename ati -> modules, move atiCfg.ini)
 
 def dynamicParameterisationMain(avaDir=None, cfgDynParamWorkflow=None):
     """
