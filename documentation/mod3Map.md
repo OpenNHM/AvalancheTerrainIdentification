@@ -69,7 +69,7 @@ The resulting ATES layer, together with intermediate results, is written to the 
 ## Regional Thalweg Analysis
 
 The **regional thalweg analysis** tools visualize and statistically summarize simulated avalanche "thalwegs" e.g.,
-derived from [AvaFrame::com4FlowPy]([AvaFrame::com4FlowPy](https://docs.avaframe.org/en/latest/moduleCom4FlowPy.html#))
+derived from [AvaFrame::com4FlowPy](https://docs.avaframe.org/en/latest/moduleCom4FlowPy.html)
 results. A thalweg is the central flow line (main direction) of a simulated avalanche path. These analyses can be used
 to compare the avalanche terrain of various study areas and to represent the avalanche terrain two-dimensionally (e.g.,
 see [Spannring et al. 2026](https://meetingorganizer.copernicus.org/EGU26/EGU26-10580.html)).
@@ -96,7 +96,7 @@ For a given avalanche directory and simulation (`simhash`), `regionalThalweg2DPl
 
 2. Loads the corresponding pre-computed thalweg data (`.pickle` files, from `Outputs/<module>/peakFiles/
    res_<simhash>/thalwegData`), and derives an extended and resampled profile
-   via [AvaFrame's::preparePathGeneralMain](https://docs.avaframe.org/en/latest/moduleAna5Utils.html) and saves the
+   via AvaFrame's [preparePathGeneralMain](https://docs.avaframe.org/en/latest/moduleAna5Utils.html) and saves the
    extended profile (prefixed `extended_`) alongside the original pickle file.
 3. Generates the plots enabled via the `[FLAGS]` configuration (see below).
 
@@ -129,7 +129,8 @@ a function of distance along the thalweg. The red line represents the energy lin
 
 ![thalwegBoxplot.png](../data/mod01Plots/thalwegBoxplot.png)
 **Figure 3 (`plotStatisticBoxplot`):** Example boxplot of the simulated runout length distribution across all thalwegs
-in two example study areas (Galtuer, number of release areas = 143; Sellrain, number of release areas = 169), on a
+in four example study areas (Davos, number of avalanches = 2999; Livigno: number of avalanches = 1904; Rogers Pass, 
+number of avalanches = 2374; Sellrain, number of release areas = 2757), on a
 logarithmic axis. The colored bands show the avalanche size classes (1–5), allowing the regional runout-length
 distribution to be related directly to avalanche size.
 

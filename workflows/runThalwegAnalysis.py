@@ -10,7 +10,7 @@ from avaframe.in3Utils import logUtils
 
 import modules
 import modules.mod0Helper.dataUtils as dataUtils
-import modules.mod1Release.praDelinemodulesonVeitinger as praDelineationVeitinger
+import modules.mod1Release.praDelineationVeitinger as praDelineationVeitinger
 import modules.mod1Release.praProcessing as praProcessing
 import modules.mod1Release.praSubCatchments as praSubCatchments
 import modules.mod1Release.praSegmentation as praSegmentation

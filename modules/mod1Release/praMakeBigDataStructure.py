@@ -9,6 +9,7 @@
 #             dry|wet/
 #                 Inputs/
 #                     REL/
+#                     RELArea/
 #                     RELID/
 #                     RELJSON/
 #
@@ -19,7 +20,7 @@
 # Outputs :
 #     - Fully structured FlowPy Big Data directory:
 #         ./09_flowPyBigDataStructure/
-#             pra<ID>-<elevRange>-<sizeClass>/SizeN/{dry,wet}/Inputs/{REL,RELID,RELJSON}/
+#             pra<ID>-<elevRange>-<sizeClass>/SizeN/{dry,wet}/Inputs/{REL,RELArea,RELID,RELJSON}/
 #
 # Config :
 #     [praMAKEBIGDATASTRUCTURE]
@@ -152,37 +153,55 @@ def runPraMakeBigDataStructure(cfg, workFlowDir):
         log.error("No .tif rasters found in ./%s", dataUtils.relPath(inputFolder, cairosDir))
         return
 
-    def _isPraCandidate(path):
-        name = os.path.basename(path)
-        if not name.startswith("pra"):
-            return False
-        hasBound = name.endswith("-praBound.tif")
-        return hasBound if usePraBoundary else (not hasBound)
-
-    tifs = [t for t in allTifs if _isPraCandidate(t)]
-    if not tifs:
-        exp = "with -praBound suffix" if usePraBoundary else "without -praBound suffix"
+    praAttribute = cfg["praPREPFORFLOWPY"].get("rasterizeAttributePRA", fallback="praAreaM")
+    praIdAttribute = cfg["praPREPFORFLOWPY"].get("rasterizeAttributeID", fallback="praID")
+    releaseSuffix = "-praBound.tif" if usePraBoundary else f"-{praAttribute}.tif"
+    releaseStemSuffix = os.path.splitext(releaseSuffix)[0]
+    releaseTifs = [
+        path
+        for path in allTifs
+        if os.path.basename(path).startswith("pra") and path.endswith(releaseSuffix)
+    ]
+    if not releaseTifs:
         log.error(
-            "No 'pra*.tif' rasters found %s in ./%s",
-            exp,
+            "No release rasters ending in '%s' found in ./%s",
+            releaseSuffix,
             dataUtils.relPath(inputFolder, cairosDir),
         )
         return
 
-    for t in tifs:
+    for t in releaseTifs:
         log.debug("Using raster: ./%s", dataUtils.relPath(t, cairosDir))
 
     # --- Build structure and copy rasters ---
     nFoldersCreated = nCopied = nSkipped = 0
 
-    for tifPath in tifs:
+    def _copyInput(srcPath, dstDir, label):
+        nonlocal nCopied
+        if not os.path.exists(srcPath):
+            log.warning("Missing %s for case: ./%s", label, dataUtils.relPath(srcPath, cairosDir))
+            return
+        dstPath = os.path.join(dstDir, os.path.basename(srcPath))
+        try:
+            shutil.copy2(srcPath, dstPath)
+            nCopied += 1
+            log.debug(
+                "Copied %s: ./%s -> ./%s",
+                label,
+                dataUtils.relPath(srcPath, cairosDir),
+                dataUtils.relPath(dstPath, cairosDir),
+            )
+        except Exception:
+            log.exception("Copy failed for %s to ./%s", label, dataUtils.relPath(dstDir, cairosDir))
+
+    for tifPath in releaseTifs:
         try:
             with dataUtils.timeIt(f"makeCase({os.path.basename(tifPath)})"):
                 fileStem = os.path.splitext(os.path.basename(tifPath))[0]
 
-                # --- clean folderBase robustly (remove technical suffixes) ---
-                folderBase = re.sub(r"-ElevBands-Sized", "", fileStem)
-                folderBase = re.sub(r"-(pra(ID|AreaM|AreaSized|Bound)).*$", "", folderBase)
+                # --- Remove the configured release-raster suffix from the scenario name. ---
+                folderBase = fileStem.removesuffix(releaseStemSuffix)
+                folderBase = folderBase.removesuffix("-ElevBands-Sized")
                 log.debug("Scenario folder base parsed: %s -> %s", fileStem, folderBase)
 
                 # --- extract size number ---
@@ -216,22 +235,18 @@ def runPraMakeBigDataStructure(cfg, workFlowDir):
                         os.makedirs(relAreaDir, exist_ok=True)
                         nFoldersCreated += 1
 
-                        # --- Copy PRA raster ---
-                        if fileStem.endswith("-praID") or "-praID" in fileStem:
-                            dstPath = os.path.join(relIdDir, os.path.basename(tifPath))
-                        else:
-                            dstPath = os.path.join(relDir, os.path.basename(tifPath))
-
-                        try:
-                            shutil.copy2(tifPath, dstPath)
-                            nCopied += 1
-                            log.debug(
-                                "Copied: ./%s -> ./%s",
-                                dataUtils.relPath(tifPath, cairosDir),
-                                dataUtils.relPath(dstPath, cairosDir),
-                            )
-                        except Exception:
-                            log.exception("Copy failed to ./%s", dataUtils.relPath(relDir, cairosDir))
+                        # --- Copy release raster and its required companion rasters ---
+                        _copyInput(tifPath, relDir, "release raster")
+                        _copyInput(
+                            os.path.join(inputFolder, f"{folderBase}-{praAttribute}.tif"),
+                            relAreaDir,
+                            "release-area raster",
+                        )
+                        _copyInput(
+                            os.path.join(inputFolder, f"{folderBase}-{praIdAttribute}.tif"),
+                            relIdDir,
+                            "release-ID raster",
+                        )
 
                         # --- Copy matching GeoJSON (if exists) ---
                         geoBase = folderBase + ".geojson"
@@ -252,22 +267,6 @@ def runPraMakeBigDataStructure(cfg, workFlowDir):
                                 )
                         else:
                             log.debug("No GeoJSON found for base=%s", folderBase)
-
-                        if fileStem.endswith("praAreaM") or "praAreaM" in fileStem:
-                            dstPath = os.path.join(relAreaDir, os.path.basename(tifPath))
-                            try:
-                                shutil.copy2(tifPath, dstPath)
-                                nCopied += 1
-                                log.debug(
-                                    "Copied: ./%s -> ./%s",
-                                    dataUtils.relPath(tifPath, cairosDir),
-                                    dataUtils.relPath(dstPath, cairosDir),
-                                )
-                            except Exception:
-                                log.exception(
-                                    "Copy failed to ./%s",
-                                    dataUtils.relPath(relAreaDir, cairosDir),
-                                )
 
         except Exception:
             log.exception("Case creation failed for ./%s", dataUtils.relPath(tifPath, cairosDir))

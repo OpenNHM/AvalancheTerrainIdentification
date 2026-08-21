@@ -181,6 +181,7 @@ def _derivePraBoundaries(outDir, cfg, cairosDir):
     sect = cfg["praPREPFORFLOWPY"]
     derive = sect.getboolean("deriveBoundaries", fallback=False)
     compress = sect.getboolean("compressOutputs", fallback=True)
+    attributePRA = sect.get("rasterizeAttributePRA", fallback="praAreaM")
     if not derive:
         return 0, 0
 
@@ -190,10 +191,14 @@ def _derivePraBoundaries(outDir, cfg, cairosDir):
         log.error("Step 07: deriveBoundaries=True but SciPy unavailable; skipping.")
         return 0, 0
 
-    inTifs = sorted(glob.glob(os.path.join(outDir, "*.tif")))
+    sourceSuffix = f"-{attributePRA}.tif"
+    inTifs = sorted(
+        tif for tif in glob.glob(os.path.join(outDir, "*.tif")) if tif.endswith(sourceSuffix)
+    )
     if not inTifs:
         log.warning(
-            "Step 07: No input rasters for boundary derivation in ./%s",
+            "Step 07: No PRA rasters ending in '%s' for boundary derivation in ./%s",
+            sourceSuffix,
             dataUtils.relPath(outDir, cairosDir),
         )
         return 0, 0
@@ -213,7 +218,7 @@ def _derivePraBoundaries(outDir, cfg, cairosDir):
                 out = np.full(arr.shape, nodata, dtype=arr.dtype)
                 out[boundaryMask] = arr[boundaryMask]
 
-                outPath = os.path.splitext(tif)[0] + "_praBound.tif"
+                outPath = tif[: -len(sourceSuffix)] + "-praBound.tif"
                 dataUtils.saveRaster(
                     tif, outPath, out, dtype=arr.dtype, nodata=nodata, compress=("LZW" if compress else None)
                 )

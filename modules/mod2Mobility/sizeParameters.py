@@ -1,4 +1,4 @@
-# AvaScenarioModelChain/in2Parameter/sizeParameters.py
+# modules/mod2Mobility/sizeParameters.py
 # Author: Paula Spannring (BFW)
 # Modified: Christoph Hesselbach (BFW)
 

@@ -93,8 +93,7 @@ The workflow reads two configuration files:
   Each section has a `defaultConfig` flag: if `True`, the sub-module's own default configuration is used as the base
   configuration, with the parameter values given in `runAutoAtesModelChainCfg.ini` applied on top as overrides. If
   `False`, and a `local_` configuration file for that sub-module is available, that local configuration is used instead
-  (more information
-  see [here]([https://docs.avaframe.org/en/latest/complexUsage.html#override-configuration](https://docs.avaframe.org/en/latest/complexUsage.html#override-configuration))).
+  (see the [AvaFrame override-configuration documentation](https://docs.avaframe.org/en/latest/complexUsage.html#override-configuration)).
 
   As with `atiCfg.ini`, create a `local_runAutoAtesModelChainCfg.ini` copy to adjust these settings for your own run.
 
@@ -145,12 +144,15 @@ automatically by Step 1, unless matching files are already present (see the note
 
 ## How to Run
 
-For now, you also need to clone the [AvaFrame repository](https://github.com/OpenNHM/AvaFrame) in the same directory as
-AvaScenarioModelChain.
+Clone the [AvaFrame repository](https://github.com/OpenNHM/AvaFrame) as a sibling of
+`AvalancheTerrainIdentification` and use the documented `PS_FP_changeCfgRead` branch. This branch requirement is
+retained until the workflow owner confirms that the necessary changes are available elsewhere.
 
 ```bash
 git clone https://github.com/OpenNHM/AvaFrame.git
-cd [YOURDIR]/AvaScenarioModelChain
+cd [YOURDIR]/OpenNHM/AvaFrame
+git switch PS_FP_changeCfgRead
+cd ../AvalancheTerrainIdentification
 pixi shell --environment dev
 python workflows/runAutoAtesModelChain.py
 ```

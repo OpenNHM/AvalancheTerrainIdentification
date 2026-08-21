@@ -1,4 +1,4 @@
-# AvaScenarioModelChain/in2Parameter/compParams.py
+# modules/mod2Mobility/compParams.py
 # Author: Paula Spannring (BFW)
 # Modified: Christoph Hesselbach (BFW)
 
