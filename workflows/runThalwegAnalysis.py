@@ -19,15 +19,15 @@ import modules.mod2Mobility.compParams as compParams
 import modules.mod3Map.regionalThalwegAnalysis as regionalThalwegAnalysis
 import workflows.runThalwegAnalysis as runThalwegAnalysis
 
-log = logging.getLogger("modules.workflows.runDynamicParameterisation")
 
 def thalwegAnalysisMain(avaDir=None, cfgThalwegAnalysis=None):
     """
     Workflow to compute thalwegs:
         - PRA Delineation
         - PRA segmentation
-        - dynamic parameterization
+        - size dependent parameterization
         - AvaFrame::com4FlowPy execution
+        - thalweg analyses
     Parameters
     -----------------
     avaDir: str

@@ -27,7 +27,7 @@ Suggestions for combining the individual modules into full processing chains:
 
 - [autoATES Model Chain](documentation/workflowAutoAtesModelChain.md)
 - [Avalanche Scenario Model Chain](documentation/workflowAvaScenarioModelChain.md)
-- [Dynamic Parameterization](documentation/workflowDynamicParameterisation.md)
+- [Dynamic Parameterization](documentation/workflowSizeDepParameterisation.md)
 - [Thalweg Analysis Model Chain](documentation/workflowThalwegAnalysis.md)
 - [Plots](documentation/plots.md)
 
