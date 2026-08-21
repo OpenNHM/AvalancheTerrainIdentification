@@ -6,6 +6,8 @@ import numpy as np
 import math
 import logging
 
+import modules.mod0Helper.helpFunctions as helper
+
 log = logging.getLogger("avaframe.ati.sizeParameters")
 
 
@@ -355,7 +357,7 @@ def zDeltaToSize(zDeltaSim, cfgSize):
     sizeSim: numpy array or float
         avalanche size
     """
-    uMaxSim = np.sqrt(2 * 9.81 * zDeltaSim)
+    uMaxSim = helper.zDelta2velocity(zDeltaSim)
     uMaxSize2 = cfgSize.getfloat("uMaxSize2")
     deltaUMax = cfgSize.getfloat("deltaUMax")
 
@@ -363,9 +365,42 @@ def zDeltaToSize(zDeltaSim, cfgSize):
     return sizeSim
 
 
-def travelLengthToSize(travelLength):
+def zDeltaToDestructiveSize(zDeltaSim, cfgSize):
     """
-    compute avalanche size from travel length
+    compute destructive size from zdelta (via impact pressure)
+
+    Parameters:
+    ------------
+    zDeltaSim: np.array
+        simulated zDelta (energy line height)
+    cfgSize: configparser Parser
+        contains parameters for size parameterisation
+
+    Returns:
+    sizeDestr: numpy array
+        destructive size for each zDelta value
+    """
+
+    uMaxSim = helper.zDelta2velocity(zDeltaSim)
+
+    # TODO: add a function that computes the density dependend on temperature (linearly??)
+    # now we only compute density via Tcons
+    if cfgSize.getfloat("Tcons") == -11:
+        # dry avalanche
+        rho = 200
+    else:
+        # wet avalanche
+        rho = 400
+
+    impressure = helper.velocity2pressure(uMaxSim, rho)
+
+    sizeDestr = np.log10(impressure) * 2 - 0.5
+    return sizeDestr
+
+
+def travelLengthToRunoutSize(travelLength):
+    """
+    compute avalanche runout size from travel length
 
     Parameters:
     -----------
@@ -378,6 +413,12 @@ def travelLengthToSize(travelLength):
         avalanche size
     """
 
-    sizeSim = (travelLength / 4.5) ** (1 / 4)
+    if np.any(travelLength <= 0):
+        travelLength[travelLength <= 0] = 1e-3
+    if np.any(travelLength > 2994):
+        travelLength[travelLength > 2994] = 2994
+
+    L = np.log(travelLength / 6.5) / np.log(1.5)
+    sizeSim = (13 - np.sqrt(121 - 8 * L)) / 2
 
     return sizeSim

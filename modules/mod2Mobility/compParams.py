@@ -146,7 +146,7 @@ def computeAndSaveSize(
 
     for variable in resParams:
         var_key = variable.lower()
-        if var_key == "zdelta":
+        if var_key in ("zdelta", "impressure", "pressure", "pressuremax", "impressuremax"):
             search_key = "zdelta"
         elif var_key in ("fptravelanglemax", "fptravelanglemin", "fptravelangle"):
             search_key = "fptravelangle"
@@ -169,9 +169,11 @@ def computeAndSaveSize(
             if var_key in ("fptravelanglemax", "fptravelanglemin", "fptravelangle"):
                 sizeRaster = sP.alphaToSize(data, cfgAvaSize)
             elif var_key in ("travellength", "travellengthmax", "travellengthmin"):
-                sizeRaster = sP.travelLengthToSize(data)
+                sizeRaster = sP.travelLengthToRunoutSize(data)
             elif var_key == "zdelta":
                 sizeRaster = sP.zDeltaToSize(data, cfgAvaSize)
+            elif var_key in ("impressure", "pressure", "pressuremax", "impressuremax"):
+                sizeRaster = sP.zDeltaToDestructiveSize(data, cfgAvaSize)
             else:
                 raise ValueError(f"Unknown variable for size conversion: {variable}")
 

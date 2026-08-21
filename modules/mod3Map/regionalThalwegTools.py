@@ -10,6 +10,8 @@ import os
 import pickle
 import copy
 
+import modules.mod0Helper.helpFunctions as helper
+
 import avaframe.in2Trans.rasterUtils as rasterUtils
 import avaframe.in3Utils.geoTrans as gT
 
@@ -82,42 +84,6 @@ def getRasterFile(path, variable="", ext=""):
             else:
                 filePath = files[0]
     return filePath
-
-
-def zDelta2velocity(zDelta):
-    """compute velocity from energy line height
-
-    Parameters
-    -----------
-    zDelta: numpy float or array
-        energy line height
-
-    Returns
-    -----------
-    velocity: numpy float or array
-        velocity comuted frm zDelta
-    """
-    velocity = (zDelta * 2 * 9.81) ** 0.5
-    return velocity
-
-
-def velocity2pressure(velocity, rho):
-    """compute pressure from velocity
-
-    Parameters
-    --------------
-    velocity: numpy float or array
-        velocity values
-    rho: float
-        density of snow
-
-    Returns
-    ----------------
-    imppressure: numpy float or array
-        computed pressure
-    """
-    pressure = rho * velocity ** 2 * 1e-3
-    return pressure
 
 
 def readThalwegData(path, titleDict):
@@ -404,11 +370,11 @@ def getDataBoxplots(path, variable, centerOf, rho=200):
     dataDict = maxParameterOfAllThalwegs(path, variable, centerOf)
     data = np.array(dataDict[variable])
     if "velocity" in varName:
-        data = zDelta2velocity(data)
+        data = helper.zDelta2velocity(data)
 
     if "impressure" in varName:
-        velo = zDelta2velocity(data)
-        data = velocity2pressure(velo, rho)
+        velo = helper.zDelta2velocity(data)
+        data = helper.velocity2pressure(velo, rho)
 
     return data
 
@@ -469,11 +435,11 @@ def maxParameterOfAllThalwegs(path, variableList, centerOf):
                 elif variable == "test":
                     # TODO: rename test!
                     zDelta = data["zDeltaMax"]
-                    velocity = zDelta2velocity(zDelta)
+                    velocity = helper.zDelta2velocity(zDelta)
                     variableValues["velocityIn"].append(velocity)
 
                     zThalweg = data["zdelta"]
-                    velThalweg = zDelta2velocity(zThalweg)
+                    velThalweg = helper.zDelta2velocity(zThalweg)
                     if len(zThalweg) > 0:
                         variableValues["velocity"].append(np.nanmax(velThalweg))
                     else:

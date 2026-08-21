@@ -187,18 +187,45 @@ The variables to convert are configured via `resParamsToSize` (a `|`-separated l
 for the given `avaDir` (and, if provided, `flowPyUid`) are located, and converted as follows (`0` and `-9999`
 values in the input raster are treated as nodata):
 
-| Result variable                                         | Conversion                                                                                                                                                           |
-|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `zDelta`                                                | `uMaxSim = sqrt(2 · 9.81 · zDelta)`, then inverted via the `umax(size)` relationship (without the temperature shift): `size = (uMaxSim − uMaxSize2) / deltaUMax + 2` |
-| `fpTravelAngleMax`, `fpTravelAngleMin`, `fpTravelAngle` | Inverted via the `alpha(size)` relationship (without the temperature shift): `size = −(alphaSim − alphaSize2) / deltaAlpha + 2`                                      |
-| `travelLength`, `travelLengthMax`, `travelLengthMin`    | Empirical relationship: `size = (travelLength / 4.5)^(1/4)`                                                                                                          |
+| `resParamsToSize` entry (aliases, case-insensitive)      | Source raster located | Conversion applied                                                                                                                               |
+|----------------------------------------------------------|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `zDelta`                                                 | `zDelta`              | `umax`-based inversion: `uMaxSim = sqrt(2 · 9.81 · zDelta)`, then `size = (uMaxSim − uMaxSize2) / deltaUMax + 2`                                 |
+| `impressure`, `pressure`, `pressureMax`, `impressureMax` | `zDelta`              | Impact-pressure-based **destructive size** (see below): `sizeDestr = log10(impressure) · 2 − 0.5`                                                |
+| `fpTravelAngleMax`, `fpTravelAngleMin`, `fpTravelAngle`  | `fpTravelAngle`       | Inverted via the `alpha(size)` relationship (without the temperature shift): `size = −(alphaSim − alphaSize2) / deltaAlpha + 2`                  |
+| `travelLength`, `travelLengthMax`, `travelLengthMin`     | `travelLength`        | Runoutlength-based **runout size** `size = (13 − sqrt(121 − 8·L)) / 2`, with `L = ln(travelLength / 6.5) / ln(1.5)` (`travelLengthToRunoutSize`) |
 
 Each resulting size raster is saved next to the corresponding simulation-result raster, in a `Size` subfolder, with
 `_sized` appended to the original file name.
 
 > **Note:** the `zDelta` and travel-angle conversions use the base (cold/dry) `alpha`/`umax` relationships and do
 > not account for the temperature-dependent wet/dry shift described above.
- 
+
+
+The destructive and runout size are computed following the technical scheme described by Fischer et al. (2026, in
+prep.). The **destructive size** is derived from the impact pressure that is computed from `zDelta`.
+
+```
+pressure = 2 g rho zDelta
+```
+
+The density `rho` is derived from the flow regime, up to now, in a dry flow regime, the density is set to 200 kg/m³, in
+a wet flow regime the density is set to 400 kg/m³.
+
+> **Note:** In the future, we will compute the density related to the temperature.
+
+The relation `size(impact pressure)` in kPa is derived from the relation impact pressure (size) from Fischer et al.
+(2026, in prep.):
+
+```
+pressure(size) = 10 ^ (0.5 * size + 0.25) 
+```
+
+The **runout size** is derived from the runout length in m, following the relation:
+
+```
+runoutLength(size) = runoutLength(size - 1) * 1.5 ^ (7 - size)
+```
+
 ---
 
 ## Input Files
