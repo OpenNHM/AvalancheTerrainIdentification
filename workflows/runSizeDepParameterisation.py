@@ -7,7 +7,7 @@ from avaframe.in3Utils import logUtils
 
 import modules
 import modules.mod0Helper.dataUtils as dataUtils
-import workflows.runDynamicParameterisation as runDynamicParameterisation
+import workflows.runSizeDepParameterisation as runSizeDepParameterisation
 import modules.mod1Release.praDelineationVeitinger as praDelineationVeitinger
 import modules.mod1Release.praProcessing as praProcessing
 import modules.mod1Release.praSubCatchments as praSubCatchments
@@ -15,20 +15,18 @@ import modules.mod1Release.praSegmentation as praSegmentation
 import modules.mod1Release.praPrepForFlowPy as praPrepForFlowPy
 import modules.mod2Mobility.compParams as compParams
 
-log = logging.getLogger("modules.workflows.runDynamicParameterisation")
 
-
-def dynamicParameterisationMain(avaDir=None, cfgDynParamWorkflow=None):
+def sizeDepParameterisationMain(avaDir=None, cfgSizeDepParamWorkflow=None):
     """
-    Workflow to compute dynamic parameters alpha angle and max velocity limit:
+    Workflow to compute size dependent parameters alpha angle and max velocity limit:
         - PRA Delineation
         - PRA segmentation
-        - dynamic parameterization
+        - size dependent parameterization
     Parameters
     -----------------
     avaDir: str
         directory to processed avalanche
-    cfgDynParamWorkflow: configparser object
+    cfgSizeDepParamWorkflow: configparser object
         setup
     """
     modPath = pathlib.Path(modules.__file__).resolve().parent
@@ -40,7 +38,7 @@ def dynamicParameterisationMain(avaDir=None, cfgDynParamWorkflow=None):
     else:
         cfgMain["MAIN"]["avalancheDirectory"] = avaDir
 
-    logName = "runDynamicParameterisation"
+    logName = "runSizeDepParameterisation"
     # Start logging
     log = logUtils.initiateLogger(avaDir, logName)
     log.info("MAIN SCRIPT")
@@ -48,8 +46,8 @@ def dynamicParameterisationMain(avaDir=None, cfgDynParamWorkflow=None):
 
     avaDir = pathlib.Path(avaDir)
 
-    if cfgDynParamWorkflow is None:
-        cfgDynParamWorkflow = cfgUtils.getModuleConfig(runDynamicParameterisation)
+    if cfgSizeDepParamWorkflow is None:
+        cfgSizeDepParamWorkflow = cfgUtils.getModuleConfig(runSizeDepParameterisation)
 
     # override parameters for pra delineation (after Veitinger et al 2016)
     praDelineationCfg = cfgUtils.getModuleConfig(
@@ -57,13 +55,13 @@ def dynamicParameterisationMain(avaDir=None, cfgDynParamWorkflow=None):
         fileOverride="",
         modInfo=False,
         toPrint=False,
-        onlyDefault=cfgDynParamWorkflow["mod1Release_praDelineationVeitinger_override"].getboolean(
+        onlyDefault=cfgSizeDepParamWorkflow["mod1Release_praDelineationVeitinger_override"].getboolean(
             "defaultConfig"
         ),
     )
     praDelineationCfg, _ = cfgHandling.applyCfgOverride(
         praDelineationCfg,
-        cfgDynParamWorkflow,
+        cfgSizeDepParamWorkflow,
         praDelineationVeitinger,
         addModValues=False,
     )
@@ -88,11 +86,11 @@ def dynamicParameterisationMain(avaDir=None, cfgDynParamWorkflow=None):
         fileOverride="",
         modInfo=False,
         toPrint=False,
-        onlyDefault=cfgDynParamWorkflow["mod1Release_mod1Release_override"].getboolean("defaultConfig"),
+        onlyDefault=cfgSizeDepParamWorkflow["mod1Release_mod1Release_override"].getboolean("defaultConfig"),
     )
     mod1ReleaseCfg, _ = cfgHandling.applyCfgOverride(
         mod1ReleaseCfg,
-        cfgDynParamWorkflow,
+        cfgSizeDepParamWorkflow,
         modPath / "mod1Release" / "mod1Release",
         addModValues=False,
     )
@@ -160,14 +158,14 @@ def dynamicParameterisationMain(avaDir=None, cfgDynParamWorkflow=None):
         fileOverride="",
         modInfo=False,
         toPrint=False,
-        onlyDefault=cfgDynParamWorkflow["mod2Mobility_compParams_override"].getboolean("defaultConfig"),
+        onlyDefault=cfgSizeDepParamWorkflow["mod2Mobility_compParams_override"].getboolean("defaultConfig"),
     )
     compParamsCfg, _ = cfgHandling.applyCfgOverride(
-        compParamsCfg, cfgDynParamWorkflow, compParams, addModValues=False
+        compParamsCfg, cfgSizeDepParamWorkflow, compParams, addModValues=False
     )
 
     compParams.computeAndSaveParameters(avaDir, compParamsCfg, demOverride=None, compressFiles=False)
 
 
 if __name__ == "__main__":
-    dynamicParameterisationMain()
+    sizeDepParameterisationMain()

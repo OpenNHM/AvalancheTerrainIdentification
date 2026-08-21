@@ -25,7 +25,7 @@ def autoAtesModelChainMain(avaDir=None, cfgAutoAtes=None):
     Workflow to compute ATES maps from DEM including:
         - PRA Delineation
         - PRA segmentation
-        - dynamic parameterization
+        - size dependent parameterization
         - AvaFrame::com4FlowPy execution
         - autoATES classifier
     Parameters
