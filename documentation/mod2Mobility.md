@@ -217,16 +217,17 @@ constant mode) it is applied only if `alphaDependendTemperature = True`.
 avalanche-size raster, which can help evaluate or interpret simulation results in terms of avalanche size.
 
 The variables to convert are configured via `resParamsToSize` (a `|`-separated list, e.g.
-`zDelta|fpTravelAngleMax|travelLength`). For each configured variable, the matching `com4FlowPy` output rasters
-for the given `avaDir` (and, if provided, `flowPyUid`) are located, and converted as follows (`0` and `-9999`
+`zDelta|fpTravelAngleMax|travelLength|depVolume`). For each configured variable, the matching `com4FlowPy` output
+rasters for the given `avaDir` (and, if provided, `flowPyUid`) are located, and converted as follows (`0` and `-9999`
 values in the input raster are treated as nodata):
 
 | `resParamsToSize` entry (aliases, case-insensitive)      | Source raster located | Conversion applied                                                                                                                               |
 |----------------------------------------------------------|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
 | `zDelta`                                                 | `zDelta`              | `umax`-based inversion: `uMaxSim = sqrt(2 · 9.81 · zDelta)`, then `size = (uMaxSim − uMaxSize2) / deltaUMax + 2`                                 |
-| `impressure`, `pressure`, `pressureMax`, `impressureMax` | `zDelta`              | Impact-pressure-based **destructive size** (see below): `sizeDestr = log10(impressure) · 2 − 0.5`                                                |
+| `impressure`, `pressure`, `pressureMax`, `impressureMax` | `zDelta`              | Impact-pressure-based **destructive size** (see below): `size = log10(impressure) · 2 − 0.5`                                                     |
 | `fpTravelAngleMax`, `fpTravelAngleMin`, `fpTravelAngle`  | `fpTravelAngle`       | Inverted via the `alpha(size)` relationship (without the temperature shift): `size = −(alphaSim − alphaSize2) / deltaAlpha + 2`                  |
 | `travelLength`, `travelLengthMax`, `travelLengthMin`     | `travelLength`        | Runoutlength-based **runout size** `size = (13 − sqrt(121 − 8·L)) / 2`, with `L = ln(travelLength / 6.5) / ln(1.5)` (`travelLengthToRunoutSize`) |
+| `depVolume`, `depositionVolume`                          | derived from `*_pathPolygons.geojson` (see below) | Deposition Volume-based **dimension size** (see below): `size = log10(0.1 · depVolume)`, with `depVolume = affectedPath · thickness`         |
 
 Each resulting size raster is written below `Outputs/com4FlowPy/sizeFiles/res_<flowpyHash>/`, with `_sized` appended
 to the original filename.
@@ -260,6 +261,36 @@ The **runout size** is derived from the runout length in m, following the relati
 runoutLength(size) = runoutLength(size - 1) * 1.5 ^ (7 - size)
 ```
 
+
+The **dimension size** can be characterized by its deposition volume.
+
+The deposition volume is derived from the `*_pathPolygons.geojson` file produced by `com4FlowPy`.
+Each polygon's area is rasterized onto the grid of an existing
+result raster (`zDelta`, or `travelLength` if `zDelta` is unavailable), which serves only as a reference grid for
+extent, resolution and CRS. Where polygons overlap, the cell keeps the **maximum** area among the overlapping
+polygons. 
+
+The deposition volume is computed from the affected-path area and an (average) thickness (default
+`thickness = 1 m`):
+
+```
+releaseVolume = affectedPath · thickness
+```
+
+The dimension size is then derived from this volume in m³, following the relation:
+
+```
+depVolume = 10 · 10^(size)
+```
+
+> **Note, why the *affected* area can be used:** every pixel the avalanche touches,
+> in the origin (release), transit and deposition zones, carries roughly `1 m` (in order of magnitude) of snow 
+> and this snow is entrained as the avalanche
+> passes over it. The total avalanche volume is therefore not just the volume deposited at the end, but results
+> from the **entire affected area** multiplied by the snow depth on all of these pixels.`releaseVolume =
+> affectedPath · thickness` sums up entrainment along the whole path, not only the final deposition footprint.
+
+
 ---
 
 ## Input Files
@@ -275,8 +306,11 @@ following structure:
         └── release areas in m² (*.tif)
 ```
 
-`computeAndSaveSize` additionally requires the corresponding `com4FlowPy` result rasters (e.g. under
-`Outputs/com4FlowPy/peakFiles/res_<flowpyHash>`) for the variables listed in `resParamsToSize`.
+`computeAndSaveSize` additionally requires the corresponding `com4FlowPy` result rasters
+for the variables listed in `resParamsToSize`. If `depVolume` /
+`depositionVolume` is included in `resParamsToSize`, the corresponding `*_pathPolygons.geojson` file must also be
+present in the same results folder, together with at least one of the `zDelta` or `travelLength` result
+rasters (used only as the reference grid for rasterizing the polygons).
 
 ```text
 <avaDir>/
@@ -284,7 +318,7 @@ following structure:
     ├── com4FlowPy/
         └── peakFiles/
             └── res_<flowpyHash>/   # com4FlowPy simulation results (Step 3)
-                └── FlowPy result raster (*.tif)
+                └── FlowPy result raster (*.tif or *.geojson)
 ```
 
 ## Output Files

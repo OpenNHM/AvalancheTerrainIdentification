@@ -422,3 +422,28 @@ def travelLengthToRunoutSize(travelLength):
     sizeSim = (13 - np.sqrt(121 - 8 * L)) / 2
 
     return sizeSim
+
+
+def affectedPathToSize(affectedPath, thickness=1):
+    """
+    compute deposition size from affected path,
+    and using the technical scheme deposition volume - dimension size
+    to compute the dimension size
+
+    Parameters:
+    ------------
+    affectedPath: numpy array or float
+        simulated affected path
+    thickness: numpy array or float
+        (deposition) thickness of affected path (default: 1 m)
+
+    Returns:
+    -----------
+    sizeSim: numpy array or float
+        avalanche size
+    """
+
+    depVolume = affectedPath * thickness
+
+    sizeSim = np.log10(0.1 * depVolume)
+    return sizeSim

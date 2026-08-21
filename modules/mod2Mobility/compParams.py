@@ -152,10 +152,15 @@ def computeAndSaveSize(
             search_key = "fptravelangle"
         elif var_key in ("travellength", "travellengthmax", "travellengthmin"):
             search_key = "travellength"
+        elif var_key in ("depvolume", "depositionvolume"):
+            search_key = "depvolume"
         else:
             search_key = variable
 
-        simResultFiles = dataUtils.getFlowPyOutputPath(ava_dir, search_key, flowPyUid=flowPyUid)
+        if search_key == "depvolume":
+            simResultFiles = [dataUtils.getDepVolumeRaster(ava_dir, flowPyUid=flowPyUid)]
+        else:
+            simResultFiles = dataUtils.getFlowPyOutputPath(ava_dir, search_key, flowPyUid=flowPyUid)
         if not simResultFiles:
             raise ValueError(f"The '{variable}' parameter is not in the com4FlowPy output for {ava_dir}")
 
@@ -174,6 +179,8 @@ def computeAndSaveSize(
                 sizeRaster = sP.zDeltaToSize(data, cfgAvaSize)
             elif var_key in ("impressure", "pressure", "pressuremax", "impressuremax"):
                 sizeRaster = sP.zDeltaToDestructiveSize(data, cfgAvaSize)
+            elif var_key in ("depvolume", "depositionvolume"):
+                sizeRaster = sP.affectedPathToSize(data)
             else:
                 raise ValueError(f"Unknown variable for size conversion: {variable}")
 
