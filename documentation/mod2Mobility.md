@@ -221,13 +221,13 @@ The variables to convert are configured via `resParamsToSize` (a `|`-separated l
 rasters for the given `avaDir` (and, if provided, `flowPyUid`) are located, and converted as follows (`0` and `-9999`
 values in the input raster are treated as nodata):
 
-| `resParamsToSize` entry (aliases, case-insensitive)      | Source raster located | Conversion applied                                                                                                                               |
-|----------------------------------------------------------|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| `zDelta`                                                 | `zDelta`              | `umax`-based inversion: `uMaxSim = sqrt(2 · 9.81 · zDelta)`, then `size = (uMaxSim − uMaxSize2) / deltaUMax + 2`                                 |
+| `resParamsToSize` entry (aliases, case-insensitive)    | Source raster located | Conversion applied                                                                                                                               |
+|--------------------------------------------------------|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `zDelta`                                               | `zDelta`              | `umax`-based inversion: `uMaxSim = sqrt(2 · 9.81 · zDelta)`, then `size = (uMaxSim − uMaxSize2) / deltaUMax + 2`                                 |
+| `fpTravelAngleMax`, `fpTravelAngle`  | `fpTravelAngle`       | Inverted via the `alpha(size)` relationship (without the temperature shift): `size = −(alphaSim − alphaSize2) / deltaAlpha + 2`                  |
 | `impressure`, `pressure`, `pressureMax`, `impressureMax` | `zDelta`              | Impact-pressure-based **destructive size** (see below): `size = log10(impressure) · 2 − 0.5`                                                     |
-| `fpTravelAngleMax`, `fpTravelAngleMin`, `fpTravelAngle`  | `fpTravelAngle`       | Inverted via the `alpha(size)` relationship (without the temperature shift): `size = −(alphaSim − alphaSize2) / deltaAlpha + 2`                  |
-| `travelLength`, `travelLengthMax`, `travelLengthMin`     | `travelLength`        | Runoutlength-based **runout size** `size = (13 − sqrt(121 − 8·L)) / 2`, with `L = ln(travelLength / 6.5) / ln(1.5)` (`travelLengthToRunoutSize`) |
-| `depVolume`, `depositionVolume`                          | derived from `*_pathPolygons.geojson` (see below) | Deposition Volume-based **dimension size** (see below): `size = log10(0.1 · depVolume)`, with `depVolume = affectedPath · thickness`         |
+| `travelLength`, `travelLengthMax`    | `travelLength`        | Runoutlength-based **runout size** `size = (13 − sqrt(9 − 8·L)) / 2`, with `L = ln(travelLength / 2000) / ln(1.5)` (`travelLengthToRunoutSize`) |
+| `depVolume`, `depositionVolume`                        | derived from `*_pathPolygons.geojson` (see below) | Deposition Volume-based **dimension size** (see below): `size = log10(0.1 · depVolume)`, with `depVolume = affectedPath · thickness`         |
 
 Each resulting size raster is written below `Outputs/com4FlowPy/sizeFiles/res_<flowpyHash>/`, with `_sized` appended
 to the original filename.
@@ -255,11 +255,13 @@ The relation `size(impact pressure)` in kPa is derived from the relation impact 
 pressure(size) = 10 ^ (0.5 * size + 0.25) 
 ```
 
-The **runout size** is derived from the runout length in m, following the relation:
+The **runout size** is derived from the runout length in m (clamped to the range `(0, 3175] m`),
+following the relation:
 
 ```
-runoutLength(size) = runoutLength(size - 1) * 1.5 ^ (7 - size)
+runoutLength(size) = runoutLength(size + 1) * 1.5 ^ (size - 6)
 ```
+with `runoutLength(size = 5) = 2 000 m`
 
 
 The **dimension size** can be characterized by its deposition volume.

@@ -148,10 +148,10 @@ def computeAndSaveSize(
         var_key = variable.lower()
         if var_key in ("zdelta", "impressure", "pressure", "pressuremax", "impressuremax"):
             search_key = "zdelta"
-        elif var_key in ("fptravelanglemax", "fptravelanglemin", "fptravelangle"):
-            search_key = "fptravelangle"
-        elif var_key in ("travellength", "travellengthmax", "travellengthmin"):
-            search_key = "travellength"
+        elif var_key in ("fptravelanglemax", "fptravelangle"):
+            search_key = "fpTravelAngleMax"
+        elif var_key in ("travellength", "travellengthmax"):
+            search_key = "travelLengthMax"
         elif var_key in ("depvolume", "depositionvolume"):
             search_key = "depvolume"
         else:
@@ -171,9 +171,9 @@ def computeAndSaveSize(
             data[data == 0] = np.nan
             data[data == -9999] = np.nan
 
-            if var_key in ("fptravelanglemax", "fptravelanglemin", "fptravelangle"):
+            if var_key in ("fptravelanglemax", "fptravelangle"):
                 sizeRaster = sP.alphaToSize(data, cfgAvaSize)
-            elif var_key in ("travellength", "travellengthmax", "travellengthmin"):
+            elif var_key in ("travellength", "travellengthmax"):
                 sizeRaster = sP.travelLengthToRunoutSize(data)
             elif var_key == "zdelta":
                 sizeRaster = sP.zDeltaToSize(data, cfgAvaSize)
@@ -187,7 +187,7 @@ def computeAndSaveSize(
             fileName = os.path.basename(simRaster)
             base, ext = os.path.splitext(fileName)
             resPath = dataUtils.makeSizeFilesFolder(simRaster)
-            outPath = f"{resPath}/{base}_sized{ext}"
+            outPath = f"{resPath}/{base}_{var_key}_sized{ext}"
 
             dataUtils.saveRaster(simRaster, outPath, sizeRaster)
             log.info("...saved size raster: %s", _rel(outPath, ava_dir))

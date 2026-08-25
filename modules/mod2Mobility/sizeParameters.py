@@ -395,6 +395,7 @@ def zDeltaToDestructiveSize(zDeltaSim, cfgSize):
     impressure = helper.velocity2pressure(uMaxSim, rho)
 
     sizeDestr = np.log10(impressure) * 2 - 0.5
+    sizeDestr[sizeDestr < 0] = 0
     return sizeDestr
 
 
@@ -415,11 +416,11 @@ def travelLengthToRunoutSize(travelLength):
 
     if np.any(travelLength <= 0):
         travelLength[travelLength <= 0] = 1e-3
-    if np.any(travelLength > 2994):
-        travelLength[travelLength > 2994] = 2994
+    if np.any(travelLength > 3175):
+        travelLength[travelLength > 3175] = 3175
 
-    L = np.log(travelLength / 6.5) / np.log(1.5)
-    sizeSim = (13 - np.sqrt(121 - 8 * L)) / 2
+    L = np.log(travelLength / 2000) / np.log(1.5)
+    sizeSim = (13 - np.sqrt(9 - 8 * L)) / 2
 
     return sizeSim
 
