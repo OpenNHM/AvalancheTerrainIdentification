@@ -395,7 +395,7 @@ def zDeltaToDestructiveSize(zDeltaSim, cfgSize):
     impressure = helper.velocity2pressure(uMaxSim, rho)
 
     sizeDestr = np.log10(impressure) * 2 - 0.5
-    sizeDestr[sizeDestr < 0] = 0
+
     return sizeDestr
 
 

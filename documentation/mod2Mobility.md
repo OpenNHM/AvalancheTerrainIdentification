@@ -292,6 +292,9 @@ depVolume = 10 · 10^(size)
 > from the **entire affected area** multiplied by the snow depth on all of these pixels.`releaseVolume =
 > affectedPath · thickness` sums up entrainment along the whole path, not only the final deposition footprint.
 
+> **Note, that the minimum computed size is 1. If the size results in a value < 1, using these equations,
+> it is set to 1.
+ 
 
 ---
 

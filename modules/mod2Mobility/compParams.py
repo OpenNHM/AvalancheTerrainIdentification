@@ -184,6 +184,8 @@ def computeAndSaveSize(
             else:
                 raise ValueError(f"Unknown variable for size conversion: {variable}")
 
+            sizeRaster[sizeRaster<1] = 1
+
             fileName = os.path.basename(simRaster)
             base, ext = os.path.splitext(fileName)
             resPath = dataUtils.makeSizeFilesFolder(simRaster)
