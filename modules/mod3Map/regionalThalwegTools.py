@@ -9,6 +9,8 @@ import logging
 import os
 import pickle
 import copy
+import json
+from shapely.geometry import shape
 
 import modules.mod0Helper.helpFunctions as helper
 
@@ -367,6 +369,10 @@ def getDataBoxplots(path, variable, centerOf, rho=200):
         releaseAreas = getRelAreas(path)
         return releaseAreas
 
+    if variable == "depVolume":
+        depositionVolumes = getAffectedAreas(path)
+        return depositionVolumes
+
     dataDict = maxParameterOfAllThalwegs(path, variable, centerOf)
     data = np.array(dataDict[variable])
     if "velocity" in varName:
@@ -494,6 +500,39 @@ def getRelAreas(pathToOutput):
     return relAreas
 
 
+def getAffectedAreas(pathToOutput):
+    """
+    Read the *_pathPolygons.geojson file in pathToOutput and compute the
+    area of every polygon (used as proxy for deposition volume).
+
+    Parameters
+    ----------
+    pathToOutput : str or pathlib.Path
+        path to the Output folder of the study area
+
+    Returns
+    -------
+    areas: numpy.ndarray or None
+        area of each polygon feature in the geojson file, or None if
+        no *_pathPolygons.geojson file is found in pathToOutput
+    """
+    pathToOutput = pathlib.Path(pathToOutput)
+
+    files = sorted(pathToOutput.glob("*_pathPolygons.geojson"))
+    if len(files) == 0:
+        message = f"No *_pathPolygons.geojson file found in {pathToOutput}, skipping."
+        log.warning(message)
+        return None
+
+    geojsonFile = files[0]
+    with open(geojsonFile, "r") as f:
+        geojsonData = json.load(f)
+
+    areas = [shape(feature["geometry"]).area for feature in geojsonData["features"]]
+
+    return np.array(areas)
+
+
 def getYlabelBoxplot(variable):
     """
     return ylabel
@@ -535,6 +574,8 @@ def getYlabelBoxplot(variable):
         ylabel = "Max. Travel length averaged [m]"
     elif variable == "relArea":
         ylabel = "Release area [m²]"
+    elif variable == "depVolume":
+        ylabel = "Deposition volume [m³]"
     else:
         message = f"{variable} is not a valid thalweg variable for the statistic boxplot"
         log.error(message)

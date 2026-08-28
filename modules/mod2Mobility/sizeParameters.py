@@ -395,6 +395,7 @@ def zDeltaToDestructiveSize(zDeltaSim, cfgSize):
     impressure = helper.velocity2pressure(uMaxSim, rho)
 
     sizeDestr = np.log10(impressure) * 2 - 0.5
+
     return sizeDestr
 
 
@@ -415,10 +416,35 @@ def travelLengthToRunoutSize(travelLength):
 
     if np.any(travelLength <= 0):
         travelLength[travelLength <= 0] = 1e-3
-    if np.any(travelLength > 2994):
-        travelLength[travelLength > 2994] = 2994
+    if np.any(travelLength > 3175):
+        travelLength[travelLength > 3175] = 3175
 
-    L = np.log(travelLength / 6.5) / np.log(1.5)
-    sizeSim = (13 - np.sqrt(121 - 8 * L)) / 2
+    L = np.log(travelLength / 2000) / np.log(1.5)
+    sizeSim = (13 - np.sqrt(9 - 8 * L)) / 2
 
+    return sizeSim
+
+
+def affectedPathToSize(affectedPath, thickness=1):
+    """
+    compute deposition size from affected path,
+    and using the technical scheme deposition volume - dimension size
+    to compute the dimension size
+
+    Parameters:
+    ------------
+    affectedPath: numpy array or float
+        simulated affected path
+    thickness: numpy array or float
+        (deposition) thickness of affected path (default: 1 m)
+
+    Returns:
+    -----------
+    sizeSim: numpy array or float
+        avalanche size
+    """
+
+    depVolume = affectedPath * thickness
+
+    sizeSim = np.log10(0.1 * depVolume)
     return sizeSim

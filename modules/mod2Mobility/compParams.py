@@ -148,14 +148,19 @@ def computeAndSaveSize(
         var_key = variable.lower()
         if var_key in ("zdelta", "impressure", "pressure", "pressuremax", "impressuremax"):
             search_key = "zdelta"
-        elif var_key in ("fptravelanglemax", "fptravelanglemin", "fptravelangle"):
-            search_key = "fptravelangle"
-        elif var_key in ("travellength", "travellengthmax", "travellengthmin"):
-            search_key = "travellength"
+        elif var_key in ("fptravelanglemax", "fptravelangle"):
+            search_key = "fpTravelAngleMax"
+        elif var_key in ("travellength", "travellengthmax"):
+            search_key = "travelLengthMax"
+        elif var_key in ("depvolume", "depositionvolume"):
+            search_key = "depvolume"
         else:
             search_key = variable
 
-        simResultFiles = dataUtils.getFlowPyOutputPath(ava_dir, search_key, flowPyUid=flowPyUid)
+        if search_key == "depvolume":
+            simResultFiles = [dataUtils.getDepVolumeRaster(ava_dir, flowPyUid=flowPyUid)]
+        else:
+            simResultFiles = dataUtils.getFlowPyOutputPath(ava_dir, search_key, flowPyUid=flowPyUid)
         if not simResultFiles:
             raise ValueError(f"The '{variable}' parameter is not in the com4FlowPy output for {ava_dir}")
 
@@ -166,21 +171,25 @@ def computeAndSaveSize(
             data[data == 0] = np.nan
             data[data == -9999] = np.nan
 
-            if var_key in ("fptravelanglemax", "fptravelanglemin", "fptravelangle"):
+            if var_key in ("fptravelanglemax", "fptravelangle"):
                 sizeRaster = sP.alphaToSize(data, cfgAvaSize)
-            elif var_key in ("travellength", "travellengthmax", "travellengthmin"):
+            elif var_key in ("travellength", "travellengthmax"):
                 sizeRaster = sP.travelLengthToRunoutSize(data)
             elif var_key == "zdelta":
                 sizeRaster = sP.zDeltaToSize(data, cfgAvaSize)
             elif var_key in ("impressure", "pressure", "pressuremax", "impressuremax"):
                 sizeRaster = sP.zDeltaToDestructiveSize(data, cfgAvaSize)
+            elif var_key in ("depvolume", "depositionvolume"):
+                sizeRaster = sP.affectedPathToSize(data)
             else:
                 raise ValueError(f"Unknown variable for size conversion: {variable}")
+
+            sizeRaster[sizeRaster<1] = 1
 
             fileName = os.path.basename(simRaster)
             base, ext = os.path.splitext(fileName)
             resPath = dataUtils.makeSizeFilesFolder(simRaster)
-            outPath = f"{resPath}/{base}_sized{ext}"
+            outPath = f"{resPath}/{base}_{var_key}_sized{ext}"
 
             dataUtils.saveRaster(simRaster, outPath, sizeRaster)
             log.info("...saved size raster: %s", _rel(outPath, ava_dir))
