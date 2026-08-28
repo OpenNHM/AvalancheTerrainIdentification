@@ -128,6 +128,7 @@ def runAvaDirResults(cfg, workFlowDir):
         "travelLengthMax_sized": "_travelLengthMax_sized_lzw.tif",
         "travelAngleMax": "_fpTravelAngleMax_lzw.tif",
         "travelAngleMax_sized": "_fpTravelAngleMax_sized_lzw.tif",
+        "depVolume_sized": "_depVolume_sized_lzw.tif",
     }
 
     # --- Build or load raster file index (optional) ---

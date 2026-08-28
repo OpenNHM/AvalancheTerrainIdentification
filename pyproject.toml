@@ -50,6 +50,7 @@ rasterio = "*"
 [tool.pixi.tasks]
 avascen = { cmd = "python workflows/runAvaScenModelChain.py", cwd = "." }
 avadirectory = { cmd = "python workflows/runAvaDirectory.py", cwd = "." }
+retranslatesize = { cmd = "python ati/local_devCH/runRetranslateFlowPyToSize.py", cwd = "." }
 
 [tool.pixi.feature.dev.dependencies]
 pytest = "*"
