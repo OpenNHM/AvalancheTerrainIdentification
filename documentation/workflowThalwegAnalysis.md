@@ -131,13 +131,10 @@ If `runFlowPy = False`, an existing `com4FlowPy` result (including its `thalwegD
 ## How to Run
 
 Clone the [AvaFrame repository](https://github.com/OpenNHM/AvaFrame) as a sibling of
-`AvalancheTerrainIdentification` and use its `PS_FP_thalweg` branch. This branch provides
-`avaframe.ana5Utils.preparePathGeneral`, which is required by the thalweg-analysis modules.
+`AvalancheTerrainIdentification`.
 
 ```bash
 git clone https://github.com/OpenNHM/AvaFrame.git
-cd [YOURDIR]/OpenNHM/AvaFrame
-git switch PS_FP_thalweg
 cd ../AvalancheTerrainIdentification
 pixi shell --environment dev
 python workflows/runThalwegAnalysis.py
