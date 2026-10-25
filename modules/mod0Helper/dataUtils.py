@@ -9,6 +9,7 @@ import subprocess
 import contextlib
 import time
 from typing import Union, List, Tuple
+import re
 
 import numpy as np
 import pandas as pd
@@ -16,6 +17,9 @@ import rasterio
 from rasterio.features import rasterize
 from rasterio.errors import RasterioIOError
 import geopandas as gpd
+import json
+from rasterio.features import rasterize
+from shapely.geometry import shape as shpShape
 
 try:
     import pyogrio
@@ -248,6 +252,73 @@ def getFlowPyOutputPath(path: PathLike, variable: str, flowPyUid: str = "") -> L
         candidates = base.glob("res_*/*.tif")
 
     return [p for p in candidates if token in p.name.lower()]
+
+def getPathPolygonsFile(path, flowPyUid = ""):
+    """Return the *_pathPolygons.geojson file for a com4FlowPy simulation, or None."""
+    base = pathlib.Path(path) / "Outputs" / "com4FlowPy" / "peakFiles"
+    if flowPyUid:
+        candidates = list((base / f"res_{flowPyUid}").glob("*_pathPolygons.geojson"))
+    else:
+        candidates = list(base.glob("res_*/*_pathPolygons.geojson"))
+    if not candidates:
+        return None
+    return sorted(candidates)[0]
+
+def getDepVolumeRaster(avaDir: PathLike, *, flowPyUid: str = ""):
+    """
+    Build the deposition-volume area raster from *_pathPolygons.geojson so it
+    can flow through the same sizing loop as the other FlowPy result rasters.
+
+    Uses an existing zdelta/travelLength raster only as reference grid
+    (extent/resolution/crs). Polygon area is rasterized via
+    painting polygons in ascending order of
+    area so overlapping cells keep the MAXIMUM area.
+
+    Returns
+    -------
+    outPath: pathlib.Path
+        path to the saved area raster (not yet converted to size)
+    """
+    ava_dir = pathlib.Path(avaDir)
+
+    refRasterFiles = getFlowPyOutputPath(ava_dir, "zdelta", flowPyUid=flowPyUid)
+    if not refRasterFiles:
+        refRasterFiles = getFlowPyOutputPath(ava_dir, "travelLength", flowPyUid=flowPyUid)
+    if not refRasterFiles:
+        raise ValueError(
+            f"No reference raster (zdelta/travellength) found in the com4FlowPy output for {ava_dir} "
+            "to rasterize the deposition volume onto."
+        )
+    refRaster = refRasterFiles[0]
+
+    geojsonFile = getPathPolygonsFile(ava_dir, flowPyUid=flowPyUid)
+    if geojsonFile is None:
+        raise ValueError(
+            f"No '*_pathPolygons.geojson' file found in the com4FlowPy output for {ava_dir}"
+        )
+
+    gdf = gpd.read_file(geojsonFile)
+    gdf["area"] = gdf.geometry.area
+    gdf = gdf.sort_values("area", ascending=True).reset_index(drop=True)
+
+    fileName = os.path.basename(refRaster)
+    base, ext = os.path.splitext(fileName)
+    depVolumeBase = re.sub(r"(zdelta|travellength)", "depVolume", base, flags=re.IGNORECASE)
+    if depVolumeBase == base:
+        depVolumeBase = f"{base}_depVolume"
+    outPath = pathlib.Path(refRaster).with_name(f"{depVolumeBase}{ext}")
+
+    rasterizeGeojsonToTif(
+        gdf=gdf,
+        demPath=refRaster,
+        outPath=outPath,
+        mode="attribute",
+        attribute="area",
+        classField="",
+        allTouched=True,
+        compress=True,
+    )
+    return outPath
 
 
 def makeSizeFilesFolder(simResultFile: PathLike) -> pathlib.Path:

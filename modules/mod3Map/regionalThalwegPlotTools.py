@@ -403,7 +403,16 @@ def plotBoxplot(pathDictList, cfg, title=""):
     for pathDict in pathDictList:
         path = pathDict["pathToOutput"]
         dataNan = tools.getDataBoxplots(path, varName, centerOf, cfgGen.getfloat("rho"))
+        if dataNan is None:
+            log.warning(f"Skipping {path} for variable {varName}: required data not found.")
+            continue
+
         data = np.delete(dataNan, np.where(np.isnan(dataNan)))
+        print(data)
+        print(pathDict.get("studyAreaName", pathDict["titleVariables"]["simHash"]))
+        if data.size == 0:
+            log.warning(f"Skipping {path} for variable {varName}: no valid (non-NaN) values.")
+            continue
         dataList.append(data)
         areaName = pathDict.get("studyAreaName", pathDict["titleVariables"]["simHash"])
         print(areaName, " : ", np.nanmedian(data))
@@ -445,6 +454,9 @@ def plotBoxplot(pathDictList, cfg, title=""):
         sizeName = "Destructive\nsize"
     elif "relArea" in varName:
         varLabel = "relArea"
+        sizeName = "Dimension\nsize"
+    elif "depVolume" in varName:
+        varLabel = "depVolume"
         sizeName = "Dimension\nsize"
 
     tools.logOverallStatistic(dataList, cfgSize, varLabel)

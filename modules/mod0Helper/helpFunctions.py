@@ -19,7 +19,7 @@ def zDelta2velocity(zDelta):
 
 
 def velocity2pressure(velocity, rho):
-    """compute pressure from velocity
+    """compute pressure [kPa] from velocity
 
     Parameters
     --------------
@@ -31,7 +31,7 @@ def velocity2pressure(velocity, rho):
     Returns
     ----------------
     imppressure: numpy float or array
-        computed pressure
+        computed pressure in kPa
     """
     pressure = rho * velocity**2 * 1e-3
     return pressure

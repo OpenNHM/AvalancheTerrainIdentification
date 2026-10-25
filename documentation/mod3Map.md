@@ -4,7 +4,7 @@
 
 The `mod3Map` module provides tools to map and classify terrain.
 
-## `autoATESClassifier`
+## autoATES Classifier
 
 The `autoATESClassifier` classifies terrain into the four **Avalanche Terrain Exposure Scale (ATES)** classes,
 `simple`, `challenging`, `complex` and `extreme`, based on slope angle, potential release areas (PRA), avalanche runout

@@ -19,6 +19,7 @@ pixi.lock
 # --- Local configuration (user-specific) ---
 local_*.ini
 local_*.md
+local_*/
 /local_tests/
 
 # --- Logs, temp, cache ---
