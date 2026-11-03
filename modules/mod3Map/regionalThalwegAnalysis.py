@@ -22,16 +22,26 @@ from avaframe.out3Plot import outCom3Plots
 log = logging.getLogger("avaframe.modules.regionalThalwegAnalysis")
 
 
-def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash="", studyAreaName=None):
+def regionalThalwegAnalysisMain(avalanchedir, cfg, simhash="", studyAreaName=None):
     """
-    read in Input data and general function for 2D thalweg plot
+    regional thalweg analysis: read the thalweg data, extend the thalwegs and make the thalweg and
+    statistic plots (see FLAGS in the configuration)
 
     Parameters
     -----------
-    avalanchedir: str
-        Path to the th avalanche directory
+    avalanchedir: str or pathlib Path
+        Path to the avalanche directory
     cfg: configparser Object
         contains configuration settings
+    simhash: str
+        simulation hash of the analysed simulation (if empty: cfg simHash or the only results folder)
+    studyAreaName: str or None
+        name of the study area (used in the statistic plots)
+
+    Returns
+    -----------
+    pathDict: dict
+        contains the paths (avalancheDir, pathToOutput, savePath), titleVariables and zDeltaType
     """
     avalanchedir = pathlib.Path(avalanchedir)
 
@@ -71,12 +81,16 @@ def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash="", studyAreaName=None)
     # demDict["rasterData"] = np.flipud(demDict["rasterData"])
 
     # check which thalweg is plotted
-    if startRow != "" and startCol != "" and relId != "":
+    if (startRow != "" or startCol != "") and relId != "":
         message = "When choosing one thalweg that is plotted, only select with startcell coordinates or release Id!"
         log.error(message)
         raise ValueError(message)
+    if (startRow != "") != (startCol != ""):
+        message = "When choosing one thalweg with startcell coordinates, provide both startRow and startCol!"
+        log.error(message)
+        raise ValueError(message)
     plotAllThalwegs = False
-    if startCol != "" or startRow != "":
+    if startCol != "" and startRow != "":
         startCol = np.int16(startCol)
         startRow = np.int16(startRow)
     elif relId != "":
@@ -90,6 +104,17 @@ def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash="", studyAreaName=None)
     else:
         plotAllCenterOf = False
 
+    # type of simulated zDelta along the thalweg (used for zdelta, velocity and impact pressure)
+    zDeltaType = cfg["GENERAL"].get("zDeltaThalweg")
+    if zDeltaType not in tools.ZDELTA_THALWEG_TYPES:
+        message = (
+            f"zDeltaThalweg = {zDeltaType} is not valid, choose one of {list(tools.ZDELTA_THALWEG_TYPES)}."
+        )
+        log.error(message)
+        raise ValueError(message)
+    log.info(f"Simulated zDelta along the thalweg: {tools.getZDeltaLabel(zDeltaType)}")
+    pathDict["zDeltaType"] = zDeltaType
+
     pathDict["titleVariables"] = {
         "startRow": startRow,
         "startCol": startCol,
@@ -102,6 +127,10 @@ def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash="", studyAreaName=None)
     if plotAllCenterOf:
         log.info(f"Plot all thalweg data that can be found in {pathToOutput}/ThalwegData.")
         files = sorted(list((pathToOutput / "thalwegData").glob(f"thalwegData_*.pickle")))
+        if len(files) == 0:
+            message = f"There is no thalweg data in {pathToOutput}/ThalwegData."
+            log.error(message)
+            raise FileNotFoundError(message)
     elif plotAllThalwegs:
         log.info(
             f"Plot all thalwegs averaged with {centerOf} that can be found in {pathToOutput}/ThalwegData."
@@ -134,69 +163,69 @@ def regionalThalweg2DPlotMain(avalanchedir, cfg, simhash="", studyAreaName=None)
 
             _, profileExtended = pathGen.preparePathGeneralMain(dataThalweg, cfgDFAPath, demDict)
 
-            if cfg["GENERAL"].getboolean("averagedZdelta"):
-                profileExtended = tools.interpolateValueFromAveragedToExtended(dataThalweg, profileExtended,
-                                                                               "zdelta", startValue=0,
-                                                                               endValue=0,
-                                                                               indStart=profileExtended[
-                                                                                   "indStartMassAverage"],
-                                                                               indEnd=profileExtended[
-                                                                                   "indEndMassAverage"])
-            else:
-                zDeltaRasterFile = tools.getRasterFile(pathDict["pathToOutput"], variable="zdelta")
-
-                profileExtended["zdelta"] = tools.getThalwegValuesFromRaster(
-                    zDeltaRasterFile, profileExtended["x"], profileExtended["y"]
-                )
+            profileExtended = tools.addSimulatedZDeltaToExtended(
+                dataThalweg, profileExtended, zDeltaType, pathDict["pathToOutput"]
+            )
+            profileExtended = tools.cleanExtendedProfile(profileExtended)
 
             fileDict[thalwegDataFile] = {"pathDict": pathDictLoop, "thalwegData": profileExtended,
                                          "thalwegDataAveraged": dataThalweg
                                          }
             tools.saveExtPickle(profileExtended, thalwegDataFile)
     else:
-        thalwegDataFile = pathToOutput / "thalwegData"
-        dataThalweg = tools.readThalwegData(thalwegDataFile, pathDict["titleVariables"])
+        dataThalweg, thalwegDataFile = tools.readThalwegData(
+            pathToOutput / "thalwegData", pathDict["titleVariables"]
+        )
         _, profileExtended = pathGen.preparePathGeneralMain(dataThalweg, cfgDFAPath, demDict)
 
-        if cfg["GENERAL"].getboolean("averagedZdelta"):
-            profileExtended = tools.interpolateValueFromAveragedToExtended(dataThalweg, profileExtended,
-                                                                           "zdelta", startValue=0,
-                                                                           endValue=0,
-                                                                           indStart=profileExtended[
-                                                                               "indStartMassAverage"],
-                                                                           indEnd=profileExtended[
-                                                                               "indEndMassAverage"])
-        else:
-            zDeltaRasterFile = tools.getRasterFile(pathDict["pathToOutput"], variable="zdelta")
-
-            profileExtended["zdelta"] = tools.getThalwegValuesFromRaster(
-                zDeltaRasterFile, profileExtended["x"], profileExtended["y"]
-            )
+        if "zDelta" in dataThalweg and "zdelta" not in dataThalweg:
+            dataThalweg["zdelta"] = dataThalweg["zDelta"]
+        profileExtended = tools.addSimulatedZDeltaToExtended(
+            dataThalweg, profileExtended, zDeltaType, pathDict["pathToOutput"]
+        )
+        profileExtended = tools.cleanExtendedProfile(profileExtended)
 
         tools.saveExtPickle(profileExtended, thalwegDataFile)
         fileDict[thalwegDataFile] = {"pathDict": pathDict, "thalwegData": profileExtended,
                                      "thalwegDataAveraged": dataThalweg
                                      }
 
-    # make plots
-    for fileName in fileDict.keys():
-        profileExtended = fileDict[fileName]["thalwegData"]
-        pathDict = fileDict[fileName]["pathDict"]
+    # make plots for every thalweg
+    if (
+        cfgFlags.getboolean("plotThalweg2D")
+        or cfgFlags.getboolean("plotThalwegAltitude")
+        or cfgFlags.getboolean("plotThalwegLocation")
+    ):
+        for fileName in fileDict.keys():
+            profileExtended = fileDict[fileName]["thalwegData"]
+            pathDictThalweg = fileDict[fileName]["pathDict"]
 
-        # derive zdelta value along path
+            if cfgFlags.getboolean("plotThalweg2D"):
+                plotThalweg2D(pathDictThalweg, cfg, profileExtended)
+            if cfgFlags.getboolean("plotThalwegAltitude"):
+                plotDFAThalwegAltitude(pathDictThalweg, profileExtended)
+            if cfgFlags.getboolean("plotThalwegLocation"):
+                plotDFAGenerationLocation(
+                    cfg, pathDictThalweg, profileExtended, rasterVariable="fpTravelAngleMax"
+                )
 
-        if cfgFlags.getboolean("plotThalweg2D"):
-            plotThalweg2D(pathDict, cfg, profileExtended)
-        if cfgFlags.getboolean("plotThalwegAltitude"):
-            plotDFAThalwegAltitude(pathDict, profileExtended)
-        if cfgFlags.getboolean("plotThalwegLocation"):
-            plotDFAGenerationLocation(cfg, pathDict, profileExtended, rasterVariable="fpTravelAngleMax")
-    if cfgFlags.getboolean("plotAllThalwegLocations"):
-        plotThalweg2D(pathDict, cfg, profileExtended, onlyField=True)
-    if cfgFlags.getboolean("plotStatisticBoxplot"):
-        plotTools.plotBoxplot(pathDict, cfg)
-    if cfgFlags.getboolean("plotStatisticScatterPlot"):
-        plotTools.plotScatterInputEffective(pathDict, cfg)
+    # plots of all thalwegs: separately for every center of variable
+    centerOfList = sorted(
+        {fileDict[fileName]["pathDict"]["titleVariables"]["centerOf"] for fileName in fileDict}
+    )
+    centerOfCfg = cfg["GENERAL"]["centerOfVariable"]
+    for centerOfPlot in centerOfList:
+        pathDictCenterOf = copy.deepcopy(pathDict)
+        pathDictCenterOf["titleVariables"]["centerOf"] = centerOfPlot
+        # the statistic plots read the center of variable from the configuration
+        cfg["GENERAL"]["centerOfVariable"] = centerOfPlot
+        if cfgFlags.getboolean("plotAllThalwegLocations"):
+            plotThalweg2D(pathDictCenterOf, cfg, None, onlyField=True)
+        if cfgFlags.getboolean("plotStatisticBoxplot"):
+            plotTools.plotBoxplot(pathDictCenterOf, cfg)
+        if cfgFlags.getboolean("plotStatisticRegression", fallback=False):
+            plotTools.plotEffectiveVsInputScatter(pathDictCenterOf, cfg)
+    cfg["GENERAL"]["centerOfVariable"] = centerOfCfg
 
     return pathDict
 
@@ -213,15 +242,13 @@ def plotThalweg2D(pathDict, cfg, dataThalweg, onlyField=False):
         contains the simulation paths
     cfg: configparser Object
         contains configuration settings
-    dataThalweg: numpy array
-        thalweg data that are saved in the simulation (averaged x-, y-coordinates, zdelta, ..)
+    dataThalweg: dict or None
+        extended thalweg data of the highlighted thalweg (None: no thalweg is highlighted, only with onlyField)
     onlyField: bool
         if True: only the field with thalweg locations is plotted
 
     """
-    variable = cfg["GENERAL"].get("plotVariable")
     thalwegPra = cfg["GENERAL"].getboolean("thalwegPra")
-    size = cfg["GENERAL"].get("avalancheSize")
     savePath = pathDict["savePath"]
     centerOf = pathDict["titleVariables"]["centerOf"]
 
@@ -242,9 +269,13 @@ def plotThalweg2D(pathDict, cfg, dataThalweg, onlyField=False):
 
             y.append(newY)
             x.append(newX)
+    elif dataThalweg is not None:
+        # only the thalweg itself (list with one thalweg)
+        y = [np.array(dataThalweg["y"])]
+        x = [np.array(dataThalweg["x"])]
     else:
-        y = np.array(dataThalweg[f"y"])
-        x = np.array(dataThalweg[f"x"])
+        x = []
+        y = []
 
     # PLOT
     if onlyField:
@@ -263,8 +294,12 @@ def plotThalweg2D(pathDict, cfg, dataThalweg, onlyField=False):
         )
 
     outFileNamePart = tools.getOutFileNamePartly(pathDict["titleVariables"], allThalwegs=onlyField)
+    if not onlyField:
+        # the thalweg panel shows the simulated zDelta
+        outFileNamePart = f"{outFileNamePart}_{tools.getZDeltaFileSuffix(pathDict['zDeltaType'])}"
     outFileName = f"Thalweg2D_{outFileNamePart}.png"
     fig.savefig(savePath / outFileName)
+    plt.close(fig)
     log.info(f"saved plot: {(savePath / outFileName)}")
 
 
@@ -302,6 +337,7 @@ def plotDFAGenerationLocation(cfg, pathDict, profile, rasterVariable="fpTravelAn
     outFileName = f"DFA_thalwegLocation_{outFileNamePart}.png"
 
     fig.savefig(savePath / outFileName)
+    plt.close(fig)
     log.info(f"saved plot: {(savePath / outFileName)}")
 
 
@@ -327,7 +363,15 @@ def plotDFAThalwegAltitude(pathDict, dataThalweg):
     simName = str(pathDict["avalancheDir"]).split("/")[-1]
 
     outFileNamePart = tools.getOutFileNamePartly(pathDict["titleVariables"])
+    outFileNamePart = f"{outFileNamePart}_{tools.getZDeltaFileSuffix(pathDict['zDeltaType'])}"
     pathDict["projectName"] = outFileNamePart
     pathDict["pathResult"] = str(pathDict["savePath"])
     # TODO: we could divide the function outAIMEC.plotVelThAlongThalweg to enable modifications, e.g. the pft representation
-    outAIMEC.plotVelThAlongThalweg(pathDict, dataThalweg, pftCrossMax, velocityThalweg, cfgPlots, simName)
+    try:
+        outAIMEC.plotVelThAlongThalweg(
+            pathDict, dataThalweg, pftCrossMax, velocityThalweg, cfgPlots, simName
+        )
+    except (AssertionError, ValueError) as error:
+        # e.g. very short thalwegs or a velocity below the AIMEC velocity threshold
+        log.warning(f"No thalweg altitude plot for {outFileNamePart}: {error}")
+    plt.close("all")

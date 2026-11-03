@@ -55,6 +55,18 @@ def thalwegAnalysisMain(avaDir=None, cfgThalwegAnalysis=None):
     if cfgThalwegAnalysis is None:
         cfgThalwegAnalysis = cfgUtils.getModuleConfig(runThalwegAnalysis)
 
+    # size dependent parameterization (compParams) configuration
+    compParamsCfg = cfgUtils.getModuleConfig(
+        compParams,
+        fileOverride="",
+        modInfo=False,
+        toPrint=False,
+        onlyDefault=cfgThalwegAnalysis["mod2Mobility_compParams_override"].getboolean("defaultConfig"),
+    )
+    compParamsCfg, _ = cfgHandling.applyCfgOverride(
+        compParamsCfg, cfgThalwegAnalysis, compParams, addModValues=False
+    )
+
     if cfgThalwegAnalysis["GENERAL"].getboolean("runFlowPy"):
         # override parameters for pra delineation
         praDelineationCfg = cfgUtils.getModuleConfig(
@@ -172,18 +184,6 @@ def thalwegAnalysisMain(avaDir=None, cfgThalwegAnalysis=None):
             praArea[praArea > 0] = 1
             dataUtils.saveRaster(praVolFile[0], inRelDir / "pra_binary.tif", praArea)
 
-        # override parameters for pra delineation
-        compParamsCfg = cfgUtils.getModuleConfig(
-            compParams,
-            fileOverride="",
-            modInfo=False,
-            toPrint=False,
-            onlyDefault=cfgThalwegAnalysis["mod2Mobility_compParams_override"].getboolean("defaultConfig"),
-        )
-        compParamsCfg, _ = cfgHandling.applyCfgOverride(
-            compParamsCfg, cfgThalwegAnalysis, compParams, addModValues=False
-        )
-
         compParams.computeAndSaveParameters(avaDir, compParamsCfg, demOverride=None, compressFiles=False)
 
         # execute AvaFrame::com4FlowPy
@@ -214,7 +214,36 @@ def thalwegAnalysisMain(avaDir=None, cfgThalwegAnalysis=None):
     regThalwegCfg, _ = cfgHandling.applyCfgOverride(
         regThalwegCfg, cfgThalwegAnalysis, regionalThalwegAnalysis, addModValues=False
     )
-    regionalThalwegAnalysis.regionalThalweg2DPlotMain(avaDir, regThalwegCfg, simhash=FlowPyHash)
+    if cfgThalwegAnalysis["GENERAL"].getboolean("velocityInSizeFromUMax", fallback=False):
+        setVelocityInSizeClasses(regThalwegCfg, compParamsCfg)
+    regionalThalwegAnalysis.regionalThalwegAnalysisMain(avaDir, regThalwegCfg, simhash=FlowPyHash)
+
+
+def setVelocityInSizeClasses(regThalwegCfg, compParamsCfg):
+    """
+    set the input max. velocity size class boundaries (SIZECLASS velocityInSize1Max .. velocityInSize4Max)
+    of the thalweg analysis with the same function as the uMaxLim input values
+    (uMax(size) = uMaxSize2 + (size - 2) * deltaUMax, see mod2Mobility.sizeParameters.sizeToUmax);
+    size class i ranges from size i to i + 1, i.e. its maximum is uMax(i + 1)
+
+    Parameters
+    -----------
+    regThalwegCfg: configparser object
+        configuration of the regional thalweg analysis, SIZECLASS is updated
+    compParamsCfg: configparser object
+        configuration of the size dependent parameterization (avaSIZE: uMaxSize2, deltaUMax)
+    """
+    log = logging.getLogger("avaframe.workflows.runThalwegAnalysis")
+    uMaxSize2 = compParamsCfg["avaSIZE"].getfloat("uMaxSize2")
+    deltaUMax = compParamsCfg["avaSIZE"].getfloat("deltaUMax")
+    for i in range(1, 5):
+        velocityMax = uMaxSize2 + (i + 1 - 2) * deltaUMax
+        regThalwegCfg["SIZECLASS"][f"velocityInSize{i}Max"] = str(velocityMax)
+    log.info(
+        f"Input max. velocity size class boundaries from uMaxSize2 = {uMaxSize2} m/s and deltaUMax = "
+        f"{deltaUMax} m/s: "
+        + ", ".join(f"size {i}: {regThalwegCfg['SIZECLASS'][f'velocityInSize{i}Max']} m/s" for i in range(1, 5))
+    )
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ log = logging.getLogger("avaframe.modules.compareRegionalThalwegPlot")
 
 def regionalThalwegBoxplotCompareMain(avalanchedirList, cfg=None, simhashList=None, studyAreaNames=None):
     """
-    run regionalThalweg2DPlotMain for several avalanche directories (study areas)
+    run regionalThalwegAnalysisMain for several avalanche directories (study areas)
     and plot their statistic boxplots side by side in one combined figure.
 
     Parameters
@@ -47,7 +47,7 @@ def regionalThalwegBoxplotCompareMain(avalanchedirList, cfg=None, simhashList=No
     -----------
     pathDictList: list of dict
         the pathDicts collected for each study area (as produced by
-        regionalThalweg2DPlotMain), useful if further custom plots are needed
+        regionalThalwegAnalysisMain), useful if further custom plots are needed
     """
     if cfg is None:
         cfg = cfgUtils.getModuleConfig(regionalThalwegAnalysis)
@@ -71,7 +71,7 @@ def regionalThalwegBoxplotCompareMain(avalanchedirList, cfg=None, simhashList=No
 
     pathDictList = []
     for avalanchedir, simhash, name in zip(avalanchedirList, simhashList, studyAreaNames):
-        pathDict = regAnalysis.regionalThalweg2DPlotMain(
+        pathDict = regAnalysis.regionalThalwegAnalysisMain(
             avalanchedir, cfg, simhash=simhash, studyAreaName=name
         )
         pathDictList.append(pathDict)

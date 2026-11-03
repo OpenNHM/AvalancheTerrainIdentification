@@ -64,7 +64,7 @@ simulation results.
 
 Uses [regional thalweg analysis documentation](mod3Map.md#regional-thalweg-analysis).
 
-`regionalThalwegAnalysis.regionalThalweg2DPlotMain` is called with the `com4FlowPy` result, generating the thalweg
+`regionalThalwegAnalysis.regionalThalwegAnalysisMain` is called with the `com4FlowPy` result, generating the thalweg
 analyses plots.
 
 ---

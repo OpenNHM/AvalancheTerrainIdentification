@@ -49,12 +49,26 @@ def plotField(ax, fig, pathDict, variable):
         "fpTravelAngle": "Max. travel angle [°]",
         "travelLength": "Max. travel length [m]",
         "velocityMax": "Max. velocity [m/s]",
+        "flux": "Max. flux",
         "": "",
     }
-    if variable == "velocityMax":
-        variableOut = "zdelta"
-    else:
-        variableOut = variable
+    # name of the result raster (file name ending) of the plotted variable
+    rasterNames = {
+        "zdelta": "zdelta",
+        "fpTravelAngle": "fpTravelAngleMax",
+        "travelLength": "travelLengthMax",
+        "velocityMax": "zdelta",
+        "flux": "flux",
+    }
+    # also accept the raster names directly
+    variable = {"fpTravelAngleMax": "fpTravelAngle", "travelLengthMax": "travelLength"}.get(
+        variable, variable
+    )
+    if variable not in clabel:
+        message = f"plotVariable = {variable} is not valid, choose one of {list(clabel)}."
+        log.error(message)
+        raise ValueError(message)
+    variableOut = rasterNames.get(variable, "")
     if variable == "":
         raster = np.zeros_like(dem)
         raster[:] = np.nan
@@ -159,8 +173,8 @@ def makeFieldPlot(ax, fig, cfg, pathDict, xThalweg, yThalweg, dataThalweg):
         x coordinates of all thalwegs
     yThalweg: numpy array
         y coordinates of all thalwegs
-    dataThalweg: dict
-        profile of thalweg that is highlighted here
+    dataThalweg: dict or None
+        profile of thalweg that is highlighted here (None: no thalweg is highlighted)
 
     Returns
     -----------
@@ -181,7 +195,8 @@ def makeFieldPlot(ax, fig, cfg, pathDict, xThalweg, yThalweg, dataThalweg):
     for i, (x, y) in enumerate(zip(xThalweg, yThalweg)):
         # all thalwegs are only plotted when in cfg: relId is empty
         ax.plot(x, y, "-", c="k", linewidth=1, zorder=5, label=f"Thalweg" if i == 0 else None)
-    ax.plot(dataThalweg["x"], dataThalweg["y"], "-", c=colorThalweg, zorder=6)
+    if dataThalweg is not None:
+        ax.plot(dataThalweg["x"], dataThalweg["y"], "-", c=colorThalweg, zorder=6)
     ax.legend()
 
     if thalwegPra:
@@ -203,7 +218,7 @@ def makeThalwegPlot(ax, dataThalweg, pathDict, colorPra=""):
         zDelta (np.array): velocity altitude along thalweg
         alpha (float or int): input parameter of the simulation: alpha angle
         exp (float or int): input parameter of the simulation: exponent
-        zDeltaMax (float or int): input parameter of the simulation: zDelta Maximum threshold
+        zDeltaMaxInput (float or int): input parameter of the simulation: zDelta Maximum threshold
     pathDict: dict
         contains paths
     centerOf: str
@@ -214,25 +229,27 @@ def makeThalwegPlot(ax, dataThalweg, pathDict, colorPra=""):
     ax: matplotlib axis
         Axis containing the thalweg plot
     """
-    # demDict = gI.readDEM(pathDict["avalancheDir"])
-    # dem = demDict["rasterData"]
-    # header = demDict["header"]
-    # cellSize = header["cellsize"]
-
-    x = np.array(dataThalweg["x"])
-    y = np.array(dataThalweg["y"])
     z = np.array(dataThalweg["z"])
     s = np.array(dataThalweg["s"])
-    zdelta = dataThalweg["zdelta"]
+    zdelta = np.array(dataThalweg["zdelta"], dtype=float)
     sExtended = np.array(dataThalweg["s"])
     zExtended = np.array(dataThalweg["z"])
     indStart = dataThalweg["indStartMassAverage"]
     indEnd = dataThalweg["indEndMassAverage"]
 
-    # file = getRasterFile(pathDict["pathToOutput"], variable="zdelta")
-    # zdelta = getThalwegValuesFromRaster(file, x, y)
-
-    _, indInPath = tools.getProfileInPath(pathDict["pathToOutput"], dataThalweg)
+    # process path: polygon of the release area (if available), otherwise cells with flux > 0
+    titleRelId = pathDict["titleVariables"]["relId"]
+    relId = int(titleRelId) if str(titleRelId) != "" else None
+    pathPolygons = tools.getPathPolygons(pathDict["pathToOutput"]) if relId is not None else None
+    _, indInPath = tools.getProfileInPath(pathDict["pathToOutput"], dataThalweg, relId, pathPolygons)
+    if indInPath.size == 0:
+        log.warning(
+            "No point of the thalweg is within the process path, the thalweg profile is not plotted."
+        )
+        ax.text(
+            0.5, 0.5, "thalweg not within the process path", ha="center", va="center", transform=ax.transAxes
+        )
+        return ax
 
     maskNan = np.ones(zdelta.shape, dtype=bool)
     maskNan[indInPath] = False
@@ -240,30 +257,34 @@ def makeThalwegPlot(ax, dataThalweg, pathDict, colorPra=""):
     s[maskNan] = np.nan
     z[maskNan] = np.nan
 
-    # get FlowPy input parameter
-    if "alpha" in dataThalweg.keys():
-        alpha = dataThalweg["alpha"]
-        exp = dataThalweg["exponent"]
-        zDeltaMax = dataThalweg["zDeltaMax"]
-    else:
-        alpha = None
-        exp = None
-        zDeltaMax = None
+    # FlowPy input parameter
+    alpha = dataThalweg.get("alpha", None)
 
+    # location of the max. zDelta along the extended thalweg
     s_max = s[zdelta == np.nanmax(zdelta)]
     z_max = z[zdelta == np.nanmax(zdelta)]
     zdelta_max = zdelta[zdelta == np.nanmax(zdelta)]
+    # effective max. zDelta along the averaged thalweg (same value as in the statistic plots)
+    zdeltaEffMax = dataThalweg.get("zdeltaEffMax", zdelta_max[0])
 
-    # calculate effective runout angle
-    angle_rad = np.arctan((np.nanmax(z) - np.nanmin(z)) / (np.nanmax(s) - np.nanmin(s)))
-    angle_degrees = np.rad2deg(angle_rad)
+    # effective runout angle (as alphaEff in the statistic plots): from the first to the last point of
+    # the extended thalweg within the process path (same section as travelLengthMax)
+    indA = indInPath[0]
+    indB = indInPath[-1]
+    angle_degrees = tools.computeRunoutAngle(zExtended[indA : indB + 1], sExtended[indA : indB + 1])
+    ds = sExtended[indB] - sExtended[indA]
+    dz = zExtended[indA] - zExtended[indB]
 
-    ds = np.nanmax(s) - np.nanmin(s)
-    dh = ds * np.tan(np.deg2rad(alpha))
-
-    ax.hlines(
-        np.nanmax(z) - dh, ds * 0.85, s[indInPath[0]] + ds, colors="k", linestyles="dotted", linewidths=0.7
-    )
+    if alpha is not None:
+        dh = ds * np.tan(np.deg2rad(alpha))
+        ax.hlines(
+            zExtended[indA] - dh,
+            sExtended[indA] + ds * 0.85,
+            sExtended[indA] + ds,
+            colors="k",
+            linestyles="dotted",
+            linewidths=0.7,
+        )
 
     # dummy for legend group
     (dummyGeom,) = ax.plot(np.nan, np.nan, linestyle="none", label="Thalweg geometry")
@@ -295,17 +316,22 @@ def makeThalwegPlot(ax, dataThalweg, pathDict, colorPra=""):
     l = ax.legend(handles=[dummyGeom, thalweg, thalwegTop, thalwegBot], loc="upper center")
     ax.add_artist(l)
     # dummy for legend group
-    (p1,) = ax.plot(np.nan, np.nan, linestyle="none", label="Model input\nparameter")
-    (p2,) = ax.plot(
-        [s[indInPath[0]], ds + s[indInPath[0]]],
-        [np.nanmax(z), np.nanmax(z) - dh],
-        "k--",
-        linewidth=0.7,
-        label=rf"""$\alpha_{{input}}$ = {np.round(alpha, 1)}°""" if alpha is not None else "",
-    )
+    inputHandles = []
+    if alpha is not None:
+        (p1,) = ax.plot(np.nan, np.nan, linestyle="none", label="Model input\nparameter")
+        (p2,) = ax.plot(
+            [sExtended[indA], sExtended[indA] + ds],
+            [zExtended[indA], zExtended[indA] - dh],
+            "k--",
+            linewidth=0.7,
+            label=rf"""$\alpha_{{input}}$ = {np.round(alpha, 1)}°""",
+        )
+        inputHandles = [p1, p2]
     # dummy for legend group
     (p3,) = ax.plot(np.nan, np.nan, linestyle="none", label="Model results &\nderived metrics")
-    (p4,) = ax.plot(s, [d + z for d, z in zip(z, zdelta)], "r", lw=2, label="$z^{vel}$")
+    zDeltaType = dataThalweg.get("zdeltaType", None)
+    zDeltaTypeLabel = f" ({tools.getZDeltaLabel(zDeltaType)})" if zDeltaType is not None else ""
+    (p4,) = ax.plot(s, [d + z for d, z in zip(z, zdelta)], "r", lw=2, label=f"$z^{{vel}}${zDeltaTypeLabel}")
     if colorPra != "":
         ax.scatter(
             s[indInPath[0]],
@@ -319,54 +345,39 @@ def makeThalwegPlot(ax, dataThalweg, pathDict, colorPra=""):
         s_max[0],
         z_max[0],
         z_max[0] + zdelta_max[0],
-        label="$v_{max}$ = " + str(np.round(np.sqrt(zdelta_max[0] * 2 * 9.81), 1)) + " m/s",
+        label="$v_{max}$ = " + str(np.round(tools.zDelta2velocity(zdeltaEffMax), 1)) + " m/s",
     )
     (p6,) = ax.plot(
-        [s[indInPath[0]], s[indInPath[-1]]],
-        [z[indInPath[0]], z[indInPath[-1]]],
+        [sExtended[indA], sExtended[indB]],
+        [zExtended[indA], zExtended[indB]],
         color="k",
         linestyle="--",
         linewidth=1.1,
-        label=rf"""$\alpha_{{eff}}$ = {np.round(angle_degrees, 1)}°""",zorder=20
+        label=rf"""$\alpha_{{eff}}$ = {np.round(angle_degrees, 1)}°""",
+        zorder=20,
     )
 
     (p7,) = ax.plot(
-        [s[indInPath[0]], s[indInPath[-1]]],
-        [np.nanmin(z)] * 2,
+        [sExtended[indA], sExtended[indB]],
+        [zExtended[indB]] * 2,
         color="grey",
         linewidth=1,
         linestyle="--",
-        label=rf"""$\Delta$s = {np.round(s[indInPath[-1]] - s[indInPath[0]], 1)} m""",
+        label=rf"""$\Delta$s = {np.round(ds, 1)} m""",
     )
     p8 = ax.vlines(
-        x=s[indInPath[0]],
-        ymin=z[indInPath[-1]],
-        ymax=z[indInPath[0]],
+        x=sExtended[indA],
+        ymin=zExtended[indB],
+        ymax=zExtended[indA],
         color="silver",
         linestyle="--",
         linewidth=1,
-        label=(rf"$\Delta z = {np.round(z[indInPath[0]] - z[indInPath[-1]], 1)}$ m"),
+        label=(rf"$\Delta z = {np.round(dz, 1)}$ m"),
     )
 
-    # ax.text(s_max[0] + 1, z_max[0] + zdelta_max[0]/2, '$v_{max}$ = ' + str(np.round(np.sqrt(zdelta_max[0] * 2 * 9.81),1)) + ' m/s', va = 'center')
-    # ax.text((max(s)/5*4), min(z) + (max(z) - min(z)) / 22, fr'{angle_degrees:.1f}°', fontsize=11, ha='center')
-    # ax.text((ds*0.88), (max(z)-dh) * 1.05, fr'{alpha:.1f}°', fontsize=11, ha='center')
     ax.set(xlabel="Horizontal distance [m]")
     ax.set(ylabel="Elevation [m]")
-    ax.legend(handles=[p1, p2, p3, p4, p5, p6, p7, p8], loc="upper right")  # , bbox_to_anchor=(1, 1))
-
-    '''
-    ax.text(
-        max(s) * 0.5,
-        max(z) * 0.95,
-        (
-            f"""model parameters: \n alpha: {alpha}° \n exp: {np.round(exp, 1)} \n $Z^{{vel}}_{{max}}$: {np.round(zDeltaMax, 1)} m \n $v_{{max}}$: {round(np.sqrt(zDeltaMax * 2 * 9.81), 1)} m/s"""
-            if alpha is not None
-            else ""
-        ),
-        va="top",
-        ha="left",
-    )'''
+    ax.legend(handles=inputHandles + [p3, p4, p5, p6, p7, p8], loc="upper right")  # , bbox_to_anchor=(1, 1))
 
     return ax
 
@@ -395,18 +406,19 @@ def plotBoxplot(pathDictList, cfg, title=""):
     cfgSize = cfg["SIZECLASS"]
     varName = cfgGen.get("statisticVariable")
     centerOf = cfgGen.get("centerOfVariable")
-    ylabel = tools.getYlabelBoxplot(varName)
+    zDeltaType = cfgGen.get("zDeltaThalweg")
+    ylabel = tools.getYlabelBoxplot(varName, zDeltaType)
 
     # --- collect data + labels for every study area ---
     dataList = []
     labels = []
     for pathDict in pathDictList:
         path = pathDict["pathToOutput"]
-        dataNan = tools.getDataBoxplots(path, varName, centerOf, cfgGen.getfloat("rho"))
+        dataNan = tools.getDataBoxplots(path, varName, centerOf, cfgGen.getfloat("rho"), zDeltaType)
         data = np.delete(dataNan, np.where(np.isnan(dataNan)))
         dataList.append(data)
         areaName = pathDict.get("studyAreaName", pathDict["titleVariables"]["simHash"])
-        print(areaName, " : ", np.nanmedian(data))
+        log.info(f"{areaName}: median {varName} = {np.nanmedian(data)}")
         labels.append(f"{areaName}\n(n = {len(data)})")
 
     nGroups = len(dataList)
@@ -430,10 +442,14 @@ def plotBoxplot(pathDictList, cfg, title=""):
     ax2.set_xticks(positions, labels=labels, fontsize=13)
     ax2.set_xlim(0.25, nGroups + 0.75)
 
-    if cfgGen["boxplotYlimMin"] == "":
-        cfgGen["boxplotYlimMin"] = "0"
+    # y limits: from the configuration (if set), otherwise defaults for some variables
+    yLimDefaults = {"alphaIn": (19, 36), "velocity": (-1, 50)}
+    yMin, yMax = yLimDefaults.get(varName, (None, None))
+    if cfgGen["boxplotYlimMin"] != "":
+        yMin = cfgGen.getfloat("boxplotYlimMin")
     if cfgGen["boxplotYlimMax"] != "":
-        ax2.set_ylim([cfgGen.getfloat("boxplotYlimMin"), cfgGen.getfloat("boxplotYlimMax")])
+        yMax = cfgGen.getfloat("boxplotYlimMax")
+    ax2.set_ylim(bottom=yMin, top=yMax)
 
     # --- color background (size classes) - only depends on varName/ylim ---
     varLabel = None
@@ -535,11 +551,6 @@ def plotBoxplot(pathDictList, cfg, title=""):
         ax2.set_yticklabels([ysize1MaxCom, ysize2MaxCom, ysize3MaxCom, ysize4MaxCom], fontsize=13)
         ax2.minorticks_off()
 
-    if varName == "alphaIn":
-        ax2.set_ylim([19, 36])
-    if varName in ["velocityIn", "velocity"]:
-        ax2.set_ylim([-1, 50])
-
     plt.ylabel(ylabel, fontsize=13)
     if title == "" and len(pathDictList) == 1:
         title = f"thalwege {centerOf}"
@@ -549,154 +560,13 @@ def plotBoxplot(pathDictList, cfg, title=""):
     # --- save: combine info from all study areas ---
     savePath = pathDictList[0]["savePath"]
     simhashCombined = "-".join(pd["titleVariables"]["simHash"] for pd in pathDictList)
-    filename = f"ThalwegStatistic_{simhashCombined}_{varName}_{centerOf}.png"
+    zdSuffix = (
+        f"_{tools.getZDeltaFileSuffix(zDeltaType)}" if tools.isSimulatedZDeltaVariable(varName) else ""
+    )
+    filename = f"ThalwegStatistic_{simhashCombined}_{varName}_{centerOf}{zdSuffix}.png"
     fig.savefig(savePath / filename)
-    log.info(f"Saved boxplot path as {savePath / filename}")
-
-
-def plotScatterInputEffective(pathDict, cfg, title=""):
-    """
-    shows and potentially saves Violinplot and Boxplot
-
-    Parameters:
-    -----------
-    path: str
-        OutputPath of the FlowPy simulation
-    dataNan: np.array
-        data that is analysed and plotted (can contain nans)
-    title: str
-        title for the plot
-    """
-    path = pathDict["pathToOutput"]
-    cfgGen = cfg["GENERAL"]
-    cfgSize = cfg["SIZECLASS"]
-    varName = cfgGen.get("statisticVariable")
-    centerOf = cfgGen.get("centerOfVariable")
-
-    if varName in ["velocity", "velocityMaxIn", "velocityAveraged"]:
-        # dataNanIn = getDataBoxplots(path, "velocityIn", centerOf)
-        # dataNanEff = getDataBoxplots(path, "velocity", centerOf)
-        # TODO: think of a better way!
-        dataDict = tools.maxParameterOfAllThalwegs(path, ["test"], centerOf)
-        dataNanIn = dataDict["velocityIn"]
-        # dataNanEff = zDelta2velocity(np.array(dataDict["zdelta"]))
-        dataNanEff = dataDict["velocity"]
-
-    else:
-        return
-
-    fig, ax2 = plt.subplots()  # figsize = [4,5])
-    # fig.tight_layout()
-    labels = [f" (n = {len(dataNanEff)})"]
-
-    ax2.scatter(dataNanIn, dataNanEff, s=0.4)
-    maxlim = np.nanmax([dataNanIn, dataNanEff])
-
-    ax2.plot([0, maxlim + 5], [0, maxlim + 5], c="k", linestyle="--")
-
-    # Color background
-    if varName in ["travelLengthMax", "impressure"]:
-        ysize1Max = cfgSize.getint(f"{varName}Size1Max")
-        ysize2Max = cfgSize.getint(f"{varName}Size2Max")
-        ysize3Max = cfgSize.getint(f"{varName}Size3Max")
-        ysize4Max = cfgSize.getint(f"{varName}Size4Max")
-        y_min, y_max = ax2.get_ylim()
-        y_max = np.max([y_max, 1.1 * ysize4Max])
-        ax2.axhspan(0, ysize1Max, facecolor="#" + cfgSize["colorSize1"], alpha=0.2)  # Avalanche size 1
-        ax2.axhspan(
-            ysize1Max,
-            ysize2Max,
-            facecolor="#" + cfgSize["colorSize2"],
-            alpha=0.2,
-        )  # size 2
-        ax2.axhspan(
-            ysize2Max,
-            ysize3Max,
-            facecolor="#" + cfgSize["colorSize3"],
-            alpha=0.2,
-        )  # size 3
-        ax2.axhspan(
-            ysize3Max,
-            ysize4Max,
-            facecolor="#" + cfgSize["colorSize4"],
-            alpha=0.2,
-        )  # size 4
-        ax2.axhspan(ysize4Max, y_max, facecolor="#" + cfgSize["colorSize5"], alpha=0.2)  # size 5
-
-        # if varName == "impressure":
-        #    class_lab = "$C_{ip}$"
-        # elif varName == "path_area":
-        #   class_lab = "$B_{aa}$"
-        # elif varName == "travelLengthMax":
-        #    class_lab = "$E_{rl}$"
-        # else:
-        #    class_lab = ""
-        class_lab = ""
-
-        ax2.text(
-            1.5,
-            0 + (ysize1Max * 0.75),
-            f"{class_lab} 1",
-            ha="center",
-            va="center",
-            color="#008B8B",
-            fontsize=13,
-        )
-        ax2.text(
-            1.5,
-            ysize1Max + (ysize2Max - ysize1Max) / 2,
-            f"{class_lab} 2",
-            ha="center",
-            va="center",
-            color="#4682B4",
-            fontsize=13,
-        )
-        ax2.text(
-            1.5,
-            ysize2Max + (ysize3Max - ysize2Max) / 2,
-            f"{class_lab} 3",
-            ha="center",
-            va="center",
-            color="#6495ED",
-            fontsize=13,
-        )
-        ax2.text(
-            1.5,
-            ysize3Max + (ysize4Max - ysize3Max) / 2,
-            f"{class_lab} 4",
-            ha="center",
-            va="center",
-            color="#CD5C5C",
-            fontsize=13,
-        )
-        ax2.text(
-            1.5,
-            ysize4Max + (y_max - ysize4Max) / 2,
-            f"{class_lab} 5",
-            ha="center",
-            va="center",
-            color="#B22222",
-            fontsize=13,
-        )
-        ax2.set_yticks([ysize1Max, ysize2Max, ysize3Max, ysize4Max])
-        ax2.set_yticklabels([ysize1Max, ysize2Max, ysize3Max, ysize4Max], fontsize=13)
-
-    if varName == "alphaIn":
-        ax2.set_ylim([19, 36])
-    if varName in ["velocityMaxIn", "velocity", "velocityAveraged"]:
-        ax2.set_ylim([-1, 60])
-        plt.ylabel("effective max. velocity [m/s]", fontsize=13)
-        plt.xlabel("input (model parameter) max. velocity [m/s]", fontsize=13)
-
-    if title == "":
-        title = f"thalwege {centerOf}"
-    plt.title(title)
-    plt.grid(True)
-    savePath = pathDict["savePath"]
-    simhash = pathDict["titleVariables"]["simHash"]
-    filename = f"ThalwegScatter_{simhash}_{varName}_{centerOf}.png"
-    fig.savefig(savePath / filename)
-    log.info(f"Saved boxplot path as {savePath / filename}")
+    plt.close(fig)
+    log.info(f"Saved boxplot as {savePath / filename}")
 
 
 def addPolygonToPlot(fileToPolygon, ax, color="#6900D1", linewidth=1.0, label=""):
@@ -768,8 +638,13 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
     """
     scatter plot with a linear regression line for
     - effective runout angle vs. input alpha angle
+    - effective runout angle starting at the release area top vs. input alpha angle
+    - effective runout angle of the averaged (not extended) thalweg vs. input alpha angle
+    - averaged travel angle (gamma) at the runout end vs. input alpha angle
+    - effective runout angle of the averaged thalweg vs. averaged travel angle (gamma) at the runout end
     - effective max. velocity vs. input max. velocity
-    One plot is created per study area (scatter + regression line), plus one
+    One plot is created per study area (scatter + regression line); the travel angle
+    and the velocity pair are shown as two panels of one figure (ThalwegRegression_TravelAngleVelocity_*). Plus one
     combined plot per variable pair showing only the regression lines of all
     study areas together for comparison (no scatter points there).
     A y = x reference line is added to every plot, and x- and y-axis share
@@ -778,8 +653,8 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
     For the velocity pair, size-class background shading is added, using the
     same colors as plotBoxplot: horizontal bands for the effective max.
     velocity (converted from the impressure size-class pressure limits), and
-    vertical bands for the input max. velocity (currently fixed values,
-    see TODO below). Both are clipped to the region below the y = x diagonal,
+    vertical bands for the input max. velocity (SIZECLASS velocityInSize1Max .. velocityInSize4Max).
+    Both are clipped to the region below the y = x diagonal,
     since they are shown starting from the left/bottom axis up to the
     diagonal. Since the input velocity boundaries no longer depend on the
     DEM, both shadings are identical for every study area and are therefore
@@ -788,7 +663,7 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
     Parameters
     ------------
     pathDictList: list of dict
-        one pathDict per study area (as produced by regionalThalweg2DPlotMain),
+        one pathDict per study area (as produced by regionalThalwegAnalysisMain),
         must contain "pathToOutput", "savePath", "titleVariables" and
         optionally "studyAreaName"
     cfg: configparser Object
@@ -803,14 +678,46 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
     cfgSize = cfg["SIZECLASS"]
     centerOf = cfgGen.get("centerOfVariable")
     rho = cfgGen.getfloat("rho")
+    zDeltaType = cfgGen.get("zDeltaThalweg")
+    zdSuffix = f"_{tools.getZDeltaFileSuffix(zDeltaType)}"
+
+    # TODO: choose which alpha effective are useful!!!
 
     varPairs = [
         ("alphaIn", "alphaEff", "Input alpha angle [°]", "Effective runout angle [°]", "RunoutAngle"),
         (
+            "alphaIn",
+            "alphaEffRelTop",
+            "Input alpha angle [°]",
+            "Effective runout angle from release area top [°]",
+            "RunoutAngleReleaseTop",
+        ),
+        (
+            "alphaIn",
+            "alphaEffAveraged",
+            "Input alpha angle [°]",
+            "Effective runout angle of averaged thalweg [°]",
+            "RunoutAngleAveraged",
+        ),
+        (
+            "alphaIn",
+            "gammaEnd",
+            "Input alpha angle [°]",
+            "Averaged travel angle at runout end [°]",
+            "TravelAngle",
+        ),
+        (
+            "gammaEnd",
+            "alphaEffAveraged",
+            "Averaged travel angle at runout end [°]",
+            "Effective runout angle of averaged thalweg [°]",
+            "RunoutAngleAveragedVsTravelAngle",
+        ),
+        (
             "velocityIn",
             "velocityEff",
             "Input max. velocity [m/s]",
-            "Effective max. velocity [m/s]",
+            f"Effective max. velocity [m/s]\n(zDelta {tools.getZDeltaLabel(zDeltaType)})",
             "Velocity",
         ),
     ]
@@ -819,7 +726,7 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
     allData = []
     allNames = []
     for pathDict in pathDictList:
-        data = tools.getEffectiveVsInputData(pathDict["pathToOutput"], centerOf)
+        data = tools.getEffectiveValues(pathDict["pathToOutput"], centerOf, zDeltaType=zDeltaType, rho=rho)
         allData.append(data)
         allNames.append(pathDict.get("studyAreaName", pathDict["titleVariables"]["simHash"]))
 
@@ -834,8 +741,15 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
     ]
 
     # --- vertical (input velocity) class boundaries ---
-    # TODO: substitute that with sizeparams function
-    xVelBoundaries = [20, 35, 50, 65]
+    # input velocity class boundaries (SIZECLASS velocityInSize1Max .. velocityInSize4Max)
+    xVelBoundaries = [
+        cfgSize.getfloat(f"velocityInSize{i}Max", fallback=default)
+        for i, default in zip(range(1, 5), [15, 30, 45, 60])
+    ]
+
+    # per study area, these pairs are plotted side by side in one figure instead of separate figures
+    panelTags = ["TravelAngle", "Velocity"]
+    panelData = [{} for _ in pathDictList]
 
     for xKey, yKey, xlabel, ylabel, fileTag in varPairs:
 
@@ -853,6 +767,11 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
             else np.array([])
         )
 
+        if xAllValid.size == 0:
+            # e.g. gamma is only available if it is saved in the thalweg files
+            log.info(f"No valid {xKey}/{yKey} data found, no {fileTag} regression plot is created.")
+            continue
+
         if xAllValid.size > 0 and yAllValid.size > 0:
             sharedMin = np.nanmin([xAllValid.min(), yAllValid.min()])
             sharedMax = np.nanmax([xAllValid.max(), yAllValid.max()])
@@ -868,47 +787,27 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
             yEdges = [sharedMin] + yVelBoundaries + [sharedMax]
             xEdges = [sharedMin] + xVelBoundaries + [sharedMax]
 
+        shadingEdges = (xEdges, yEdges, sizeColors) if isVelocityPair else None
+
         # --- one scatter + regression plot per study area ---
-        for pathDict, data, areaName in zip(pathDictList, allData, allNames):
+        for iArea, (pathDict, data, areaName) in enumerate(zip(pathDictList, allData, allNames)):
             x, y = data[xKey], data[yKey]
             mask = ~np.isnan(x) & ~np.isnan(y)
             x, y = x[mask], y[mask]
+            panelArgs = (x, y, areaName, xlabel, ylabel, sharedMin, sharedMax, shadingEdges)
+
+            # these pairs are plotted as panels of one figure (see below)
+            if fileTag in panelTags:
+                panelData[iArea][fileTag] = panelArgs
+                continue
 
             fig, ax = plt.subplots()
-
-            if isVelocityPair:
-                _addSizeClassShading(ax, yEdges, sizeColors, sharedMin, sharedMax, axis="y")
-                _addSizeClassShading(ax, xEdges, sizeColors, sharedMin, sharedMax, axis="x")
-
-            ax.scatter(x, y, s=8, alpha=0.6, color="k", zorder=3, label=f"{areaName} (n = {len(x)})")
-
-            if len(x) > 1:
-                coeffs = np.polyfit(x, y, 1)
-                xFit = np.linspace(np.nanmin(x), np.nanmax(x), 100)
-                ax.plot(
-                    xFit,
-                    np.polyval(coeffs, xFit),
-                    "r--",
-                    zorder=4,
-                    label=f"fit: y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}",
-                )
-
-            ax.plot(
-                [sharedMin, sharedMax], [sharedMin, sharedMax], "k:", linewidth=1, zorder=4, label="y = x"
-            )
-
-            ax.set_xlim(sharedMin, sharedMax)
-            ax.set_ylim(sharedMin, sharedMax)
-            ax.set_aspect("equal", adjustable="box")
-
-            ax.set_xlabel(xlabel)
-            ax.set_ylabel(ylabel)
+            plotRegressionPanel(ax, *panelArgs)
             ax.set_title(f"{title} {areaName}".strip())
-            ax.legend()
-            ax.grid(True, zorder=0)
 
             simhashArea = pathDict["titleVariables"]["simHash"]
-            filename = f"ThalwegRegression_{fileTag}_{simhashArea}_{centerOf}.png"
+            sfx = zdSuffix if "Velocity" in fileTag else ""
+            filename = f"ThalwegRegression_{fileTag}_{simhashArea}_{centerOf}{sfx}.png"
             fig.savefig(pathDict["savePath"] / filename)
             plt.close(fig)
             log.info(f"Saved {fileTag} regression plot as {pathDict['savePath'] / filename}")
@@ -947,10 +846,79 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
         axComb.legend()
         axComb.grid(True, zorder=0)
 
-        filenameComb = f"ThalwegRegression_{fileTag}_{simhashCombined}_{centerOf}_comparison.png"
+        sfx = zdSuffix if "Velocity" in fileTag else ""
+        filenameComb = f"ThalwegRegression_{fileTag}_{simhashCombined}_{centerOf}{sfx}_comparison.png"
         figComb.savefig(savePath / filenameComb)
         plt.close(figComb)
         log.info(f"Saved combined {fileTag} regression plot as {savePath / filenameComb}")
+
+    # --- one figure per study area with the panel pairs side by side ---
+    for pathDict, areaName, panels in zip(pathDictList, allNames, panelData):
+        tags = [tag for tag in panelTags if tag in panels]
+        if len(tags) == 0:
+            continue
+
+        fig, axes = plt.subplots(1, len(tags), figsize=(6 * len(tags), 6), squeeze=False)
+        for ax, tag in zip(axes[0], tags):
+            plotRegressionPanel(ax, *panels[tag])
+        fig.suptitle(f"{title} {areaName}".strip())
+        fig.tight_layout()
+
+        simhashArea = pathDict["titleVariables"]["simHash"]
+        fileTag = "".join(tags)
+        sfx = zdSuffix if "Velocity" in fileTag else ""
+        filename = f"ThalwegRegression_{fileTag}_{simhashArea}_{centerOf}{sfx}.png"
+        fig.savefig(pathDict["savePath"] / filename)
+        plt.close(fig)
+        log.info(f"Saved {fileTag} regression plot as {pathDict['savePath'] / filename}")
+
+
+def plotRegressionPanel(ax, x, y, areaName, xlabel, ylabel, sharedMin, sharedMax, shadingEdges=None):
+    """
+    scatter plot of one study area with a linear regression line and a y = x reference line
+
+    Parameters
+    -----------
+    ax: matplotlib axis
+    x, y: numpy array
+        data without nans
+    areaName: str
+        name of study area (used in the legend)
+    xlabel, ylabel: str
+        axis labels
+    sharedMin, sharedMax: float
+        shared axis limits (identical for x and y)
+    shadingEdges: tuple or None
+        (xEdges, yEdges, colors) for the size class shading (see _addSizeClassShading), None for no shading
+    """
+    if shadingEdges is not None:
+        xEdges, yEdges, colors = shadingEdges
+        _addSizeClassShading(ax, yEdges, colors, sharedMin, sharedMax, axis="y")
+        _addSizeClassShading(ax, xEdges, colors, sharedMin, sharedMax, axis="x")
+
+    ax.scatter(x, y, s=8, alpha=0.6, color="k", zorder=3, label=f"{areaName} (n = {len(x)})")
+
+    if len(x) > 1:
+        coeffs = np.polyfit(x, y, 1)
+        xFit = np.linspace(np.nanmin(x), np.nanmax(x), 100)
+        ax.plot(
+            xFit,
+            np.polyval(coeffs, xFit),
+            "r--",
+            zorder=4,
+            label=f"fit: y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}",
+        )
+
+    ax.plot([sharedMin, sharedMax], [sharedMin, sharedMax], "k:", linewidth=1, zorder=4, label="y = x")
+
+    ax.set_xlim(sharedMin, sharedMax)
+    ax.set_ylim(sharedMin, sharedMax)
+    ax.set_aspect("equal", adjustable="box")
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.legend()
+    ax.grid(True, zorder=0)
 
 
 def _addSizeClassShading(ax, edges, colors, sharedMin, sharedMax, axis):
@@ -975,34 +943,33 @@ def _addSizeClassShading(ax, edges, colors, sharedMin, sharedMax, axis):
         (classes defined along the x-axis, shading fills from the bottom
         up to the diagonal)
     """
-    xFine = np.linspace(sharedMin, sharedMax, 300)
-
     if axis == "y":
         for i in range(len(edges) - 1):
-            yLow, yHigh = edges[i], edges[i + 1]
-
-            # only shade the region left of y = x,
-            # i.e. between x = 0 and x = y
-            yValues = np.linspace(yLow, yHigh, 100)
-
-            for yValue in yValues:
-                xRight = min(yValue, sharedMax)
-
-                if xRight > sharedMin:
-                    ax.fill_between(
-                        [sharedMin, xRight],
-                        yValue,
-                        yValue,
-                        color=colors[i],
-                        alpha=0.15,
-                        zorder=1,
-                    )
+            # only shade the region left of y = x (between x = sharedMin and x = y)
+            yLow = np.clip(edges[i], sharedMin, sharedMax)
+            yHigh = np.clip(edges[i + 1], sharedMin, sharedMax)
+            if yHigh <= yLow:
+                continue
+            ax.fill(
+                [sharedMin, yLow, yHigh, sharedMin],
+                [yLow, yLow, yHigh, yHigh],
+                color=colors[i],
+                alpha=0.15,
+                linewidth=0,
+                zorder=1,
+            )
     else:
         for i in range(len(edges) - 1):
-            xLow, xHigh = edges[i], edges[i + 1]
-            mask = (xFine >= xLow) & (xFine <= xHigh)
-            xBand = xFine[mask]
-            if xBand.size == 0:
+            # only shade the region below y = x (between y = sharedMin and y = x)
+            xLow = np.clip(edges[i], sharedMin, sharedMax)
+            xHigh = np.clip(edges[i + 1], sharedMin, sharedMax)
+            if xHigh <= xLow:
                 continue
-            yUpper = np.clip(xBand, sharedMin, sharedMax)
-            ax.fill_between(xBand, sharedMin, yUpper, color=colors[i], alpha=0.15, zorder=1)
+            ax.fill(
+                [xLow, xHigh, xHigh, xLow],
+                [sharedMin, sharedMin, xHigh, xLow],
+                color=colors[i],
+                alpha=0.15,
+                linewidth=0,
+                zorder=1,
+            )
