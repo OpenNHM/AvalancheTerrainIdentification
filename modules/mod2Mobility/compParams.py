@@ -72,7 +72,8 @@ def computeAndSaveParameters(
     sizePRA = sP.praToVRelSize(pra, dem, cfgAvaSize)
     sizePRA = np.asarray(sizePRA, dtype=np.float32)
 
-    # --- clamp by folder's SizeN: sizeClamped = min(sizePRA, N) ---
+    # --- clamp by folder's SizeN: sizeClamped = min(sizePRA, N + 0.99) ---
+    # the folder name holds an integer size class N, so the whole class N is covered
     sizeN = None
     parent = ava_dir.parent.name.lower()  # .../SizeN/<dry|wet>
     if parent.startswith("size"):
@@ -91,7 +92,7 @@ def computeAndSaveParameters(
                     pass
 
     if sizeN is not None:
-        sizeClamped = np.minimum(sizePRA, float(sizeN), dtype=np.float32)
+        sizeClamped = np.minimum(sizePRA, float(sizeN) + 0.99, dtype=np.float32)
     else:
         sizeClamped = sizePRA
 

@@ -63,7 +63,8 @@ Configuration parameters can be adjusted in `(local_)compParamsCfg.ini`.
 For each release area, `computeAndSaveParameters` performs the following steps:
 
 1. Compute the release thickness, either from the snow climate or as a constant value.
-2. Compute the continuous avalanche size from the release volume, optionally capped by `sizeMax`.
+2. Compute the continuous avalanche size from the release volume, optionally capped by `sizeMax` (see below for how
+   integer and decimal values of `sizeMax` are interpreted).
 3. Derive the mobility parameters `alpha`, `umax` and `exp` from the size, optionally shifted by a temperature-dependent
    wet/dry blend.
 
@@ -174,8 +175,16 @@ override `sizeShiftExp`; this value remains subject to a separate scientific rev
 One additional rule applies:
 
 - **Lower bound on `umax`:** any computed value below `5 m/s` is clamped to `5 m/s`.
-Avalanche size is capped only when `sizeMax` is configured. In the multi-scenario workflow, the directory builder
-separately limits wet-flow scenario folders to size 4 by default.
+
+Avalanche size is capped only when `sizeMax` is configured. The way `sizeMax` is written determines the cap:
+
+- **Integer, e.g. `sizeMax = 5`:** the parameterization is chosen to cover size 5 and all smaller sizes.
+- **Decimal, e.g. `sizeMax = 5.0`:** the value is used as given; `5.0` means the lower limit of size 5, i.e. the
+  continuous size is capped at exactly `5.0`. The same applies to any other size (`4.0`, `3.0`, ...) and to
+  non-integer values such as `4.5`.
+
+In the multi-scenario workflow, the size is additionally capped by the `SizeN` scenario folder: a run in folder `SizeN`
+covers size `N` and lower. 
 
 ### Temperature-Dependent Wet/Dry Parameterization
 
