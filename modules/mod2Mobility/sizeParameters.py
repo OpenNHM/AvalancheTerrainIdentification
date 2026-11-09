@@ -138,8 +138,13 @@ def praToVRelSize(ARel, dem, cfgSize):
 
     size = np.array(size)
 
-    if cfgSize["sizeMax"] != "":
+    sizeMaxStr = cfgSize["sizeMax"].strip()
+    if sizeMaxStr != "":
         sizeMax = cfgSize.getfloat("sizeMax")
+        # integer sizeMax (e.g. "5") covers the whole size class -> cap at 5.99;
+        # an explicit float (e.g. "5.0") is used as given (lower limit of size 5)
+        if sizeMaxStr.isdigit():
+            sizeMax += 0.99
         size[size > sizeMax] = sizeMax
 
     return size
