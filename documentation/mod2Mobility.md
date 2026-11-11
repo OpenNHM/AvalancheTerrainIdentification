@@ -36,7 +36,7 @@ All `mod2Mobility` functions receive an `avaDir`. In the multi-scenario workflow
 
 | Workflow runner | `mod2Mobility` function used | Directory passed |
 |---|---|---|
-| `runDynamicParameterisation.py` | `computeAndSaveParameters` | Single-scenario `avaDir` |
+| `runSizeDepParameterisation.py` | `computeAndSaveParameters` | Single-scenario `avaDir` |
 | `runAutoAtesModelChain.py` | `computeAndSaveParameters` | Single-scenario `avaDir` |
 | `runThalwegAnalysis.py` | `computeAndSaveParameters` when `runFlowPy = True` | Single-scenario `avaDir` |
 | `runAvaScenModelChain.py` | `computeAndSaveParameters` and, optionally, `computeAndSaveSize` | Each nested `SizeN/dry\|wet` leaf `avaDir` discovered through `workFlowDir` |
