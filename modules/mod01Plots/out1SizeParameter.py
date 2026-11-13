@@ -77,9 +77,9 @@ def plotRasterResult(path, axs, axs_idx, param, flowPyUid=''):
     axs[axs_idx].set_yticks(y_ticks)
     axs[axs_idx].set_yticklabels(y_tick_labels) 
     
-    axs[axs_idx].set_ylabel('y in [m]', fontsize = 13)
+    axs[axs_idx].set_ylabel('y in (m)', fontsize = 13)
     if axs_idx == 3:
-        axs[axs_idx].set_xlabel('x in [m]', fontsize = 13)
+        axs[axs_idx].set_xlabel('x in (m)', fontsize = 13)
     
     # colorbar
     if axs_idx == 0:
@@ -113,7 +113,7 @@ def plotDataExample():
                         'size' : 5,
                         }
         paramZd = {'name': 'zdelta',
-                'label': 'v [m/s]',
+                'label': 'v (m/s)',
                 'vmax': 65,
                 }
     ###################
@@ -165,10 +165,10 @@ def plotCrossCheck(cfgSize, ARel=5000, elevation=np.arange(100,3500,100)):
 
     if type(elevation) == float or type(elevation) == int:
         plotVar = ARel
-        label = "release area [m²]"
+        label = "release area (m²)"
     else:
         plotVar = elevation
-        label = "elevation [m]"
+        label = "elevation (m)"
 
     fig, axs = plt.subplots(6,2, figsize = (15,10), tight_layout =True)
     axs[0, 0].set_title(f"Parameterization settings")
@@ -178,40 +178,40 @@ def plotCrossCheck(cfgSize, ARel=5000, elevation=np.arange(100,3500,100)):
         axs[0, 0].set_ylabel("avalanche size")
     else:
         axs[0, 0].plot(plotVar, dRelease)
-        axs[0, 0].set_ylabel("snow height [m]")
+        axs[0, 0].set_ylabel("snow height (m)")
     axs[0, 0].set_xlabel(label)
 
     axs[1, 0].plot(plotVar, VRel)
     axs[1, 0].set_xlabel(label)
-    axs[1,0].set_ylabel('Volume release [m³]');
+    axs[1,0].set_ylabel('Volume release (m³)');
 
     axs[2,0].plot(VRel, size)
-    axs[2,0].set_xlabel('release Volume [m³]')
+    axs[2,0].set_xlabel('release Volume (m³)')
     axs[2,0].set_ylabel('avalanche size')
 
     axs[3,0].plot(VRel, alpha)
-    axs[3,0].set_xlabel('release Volume [m³]')
-    axs[3,0].set_ylabel('alpha [°]');
+    axs[3,0].set_xlabel('release Volume (m³)')
+    axs[3,0].set_ylabel('alpha (°)');
 
     axs[4,0].plot(VRel, umax)
-    axs[4,0].set_ylabel('u max [m/s]')
-    axs[4,0].set_xlabel('release Volume [m³]');
+    axs[4,0].set_ylabel('u max (m/s)')
+    axs[4,0].set_xlabel('release Volume (m³)');
 
     axs[5,0].plot(VRel, exp)
-    axs[5,0].set_xlabel('release Volume [m³]')
+    axs[5,0].set_xlabel('release Volume (m³)')
     axs[5,0].set_ylabel('exponent');
 
     if type(dRelease) == np.float64 or type(dRelease) == int or type(dRelease) == float:
         axs[0, 1].plot(size, umax)
-        axs[0, 1].set_ylabel("u max [m/s]")
+        axs[0, 1].set_ylabel("u max (m/s)")
     else:
         axs[0, 1].plot(size, dRelease)
-        axs[0, 1].set_ylabel("snow height m]")
+        axs[0, 1].set_ylabel("snow height (m)")
     axs[0, 1].set_xlabel("avalanche size")
 
     axs[1, 1].plot(size, VRel)
     axs[1,1].set_xlabel('avalanche size')
-    axs[1,1].set_ylabel('Volume release [m³]');
+    axs[1,1].set_ylabel('Volume release (m³)');
 
     axs[2, 1].plot(size, plotVar)
     axs[2, 1].set_ylabel(label)
@@ -219,11 +219,11 @@ def plotCrossCheck(cfgSize, ARel=5000, elevation=np.arange(100,3500,100)):
 
     axs[3,1].plot(size, alpha)
     axs[3,1].set_xlabel('avalanche size')
-    axs[3,1].set_ylabel('alpha [°]');
+    axs[3,1].set_ylabel('alpha (°)');
 
     axs[4,1].plot(size, umax)
     axs[4,1].set_xlabel('avalanche size')
-    axs[4,1].set_ylabel('umax [m/s]');
+    axs[4,1].set_ylabel('umax (m/s)');
 
     axs[5,1].plot(size, exp)
     axs[5,1].set_xlabel('avalanche size')
@@ -266,10 +266,10 @@ def plotSizeToPArameters(cfgSize, ARel=5000, elevation = np.arange(100,3500,100)
 
     if xAxis.lower() == 'elevation':
         variable = elevation
-        label = 'elevation [m]'
+        label = 'elevation (m)'
     elif xAxis.lower() == 'vrel':
         variable = VRel
-        label = 'release Volume [m³]'
+        label = 'release Volume (m³)'
     else:
         variable = size
         label = 'avalanche size'
@@ -287,9 +287,9 @@ def plotSizeToPArameters(cfgSize, ARel=5000, elevation = np.arange(100,3500,100)
     ax3.plot(variable, size, color = 'g')
     ax1.plot(variable, alpha, color = 'r', label = 'alpha')
     ax2.plot(variable, umax, 'b--', linewidth=3, label = 'u_max')
-    ax1.set_ylabel('alpha [°]')
+    ax1.set_ylabel('alpha (°)')
     ax3.set_ylabel('avalanche size')
-    ax2.set_ylabel('u_max [m/s]')
+    ax2.set_ylabel('u_max (m/s)')
 
     ax1.set_xlabel(label)
 
@@ -359,8 +359,8 @@ def plotMuXi(cfgSize, cfgPlot, size=np.linspace(2,5,7), elevation = np.linspace(
 
     ax1.plot(size, alpha, marker = 'o', color = 'r', label = 'alpha')
     ax2.plot(size, umax, marker = '*', color = 'b', label = 'u_max')
-    ax1.set_ylabel('alpha [°]')
-    ax2.set_ylabel('u_max [m/s]')
+    ax1.set_ylabel('alpha (°)')
+    ax2.set_ylabel('u_max (m/s)')
     ax1.set_xlabel('Avalanche size')
     plt.title(
         f"alpha(size=2) = {cfgSize['alphaSize2']}°, $\\Delta$ alpha = {cfgSize['deltaAlpha']}°, \n"
@@ -387,7 +387,7 @@ def plotMuXi(cfgSize, cfgPlot, size=np.linspace(2,5,7), elevation = np.linspace(
     ax3.plot(size, mu, marker = 'o', color = 'r', label = 'mu')
     ax5.plot(size, xi, marker = '*', color = 'b', label = 'xi')
     ax3.set_ylabel('mu')
-    ax5.set_ylabel('xi in [m/$s^2$]')
+    ax5.set_ylabel('xi in (m/$s^2$)')
     ax3.set_xlabel('Avalanche size')
 
     # ax5.spines["right"].set_edgecolor('b')
