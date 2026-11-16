@@ -4,6 +4,7 @@ Plotting functions for regional thalweg plots
 
 import numpy as np
 import logging
+import pathlib
 from cmcrameri import cm as cmapCrameri
 import matplotlib.pyplot as plt
 from matplotlib.colors import BoundaryNorm
@@ -45,10 +46,10 @@ def plotField(ax, fig, pathDict, variable):
     header = demDict["header"]
     cellSize = header["cellsize"]
     clabel = {
-        "zdelta": "max. zDelta [m]",
-        "fpTravelAngle": "Max. travel angle [°]",
-        "travelLength": "Max. travel length [m]",
-        "velocityMax": "Max. velocity [m/s]",
+        "zdelta": "max. zDelta (m)",
+        "fpTravelAngle": "Max. travel angle (°)",
+        "travelLength": "Max. travel length (m)",
+        "velocityMax": "Max. velocity (m/s)",
         "flux": "Max. flux",
         "": "",
     }
@@ -143,8 +144,8 @@ def plotField(ax, fig, pathDict, variable):
         )
         fig.colorbar(f, ax=ax, label=clabel[variable], shrink=0.8, aspect=30, pad=0.02)
 
-    ax.set_xlabel("x [m]")
-    ax.set_ylabel("y [m]")
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
 
     ax.set_xticks(ax.get_xticks()[::3])
     ax.set_yticks(ax.get_yticks()[::3])
@@ -375,16 +376,67 @@ def makeThalwegPlot(ax, dataThalweg, pathDict, colorPra=""):
         label=(rf"$\Delta z = {np.round(dz, 1)}$ m"),
     )
 
-    ax.set(xlabel="Horizontal distance [m]")
-    ax.set(ylabel="Elevation [m]")
+    ax.set(xlabel="Horizontal distance (m)")
+    ax.set(ylabel="Elevation (m)")
     ax.legend(handles=inputHandles + [p3, p4, p5, p6, p7, p8], loc="upper right")  # , bbox_to_anchor=(1, 1))
 
     return ax
 
 
-def plotBoxplot(pathDictList, cfg, title=""):
+def plotBoxplot(pathDictList, cfg, title="", comparisonSavePath=None):
     """
-    shows and potentially saves Violinplot and Boxplot for one or several study areas
+    shows and potentially saves Violinplot and Boxplot for one or several study areas,
+    one figure per statistic variable (statisticVariable, several variables separated by |,
+    e.g. travelLengthMax|uMaxEffRatio)
+
+    Parameters:
+    -----------
+    pathDictList: dict or list of dict
+        one pathDict (single study area) or a list of pathDicts (see plotBoxplotVariable)
+    cfg: configparser Object
+        contains configuration settings
+    title: str
+        title for the plot
+    comparisonSavePath: str or pathlib.Path, optional
+        directory where the plots are saved; if None, the savePath of the first pathDict is used
+    """
+    cfgGen = cfg["GENERAL"]
+    varNames = [var.strip() for var in cfgGen.get("statisticVariable").split("|") if var.strip() != ""]
+    yLimMins = _splitYlim(cfgGen["boxplotYlimMin"], len(varNames), "boxplotYlimMin")
+    yLimMaxs = _splitYlim(cfgGen["boxplotYlimMax"], len(varNames), "boxplotYlimMax")
+    for varName, yLimMin, yLimMax in zip(varNames, yLimMins, yLimMaxs):
+        plotBoxplotVariable(
+            pathDictList,
+            cfg,
+            varName,
+            yLimMin=yLimMin,
+            yLimMax=yLimMax,
+            title=title,
+            comparisonSavePath=comparisonSavePath,
+        )
+
+
+def _splitYlim(yLimString, nVariables, cfgName):
+    """split a y limit configuration (one value for all variables or one value per variable separated
+    by |, empty entries: default limit) into a list with one entry (str) per variable"""
+    yLims = [yLim.strip() for yLim in yLimString.split("|")]
+    if len(yLims) == 1:
+        return yLims * nVariables
+    if len(yLims) != nVariables:
+        message = (
+            f"{cfgName} has {len(yLims)} values, but statisticVariable has {nVariables} variables. "
+            "Give one value for all variables or one value per variable (separated by |)."
+        )
+        log.error(message)
+        raise ValueError(message)
+    return yLims
+
+
+def plotBoxplotVariable(
+    pathDictList, cfg, varName, yLimMin="", yLimMax="", title="", comparisonSavePath=None
+):
+    """
+    shows and potentially saves Violinplot and Boxplot of one statistic variable for one or several study areas
 
     Parameters:
     -----------
@@ -395,8 +447,14 @@ def plotBoxplot(pathDictList, cfg, title=""):
         and optionally "studyAreaName" for the x-axis label.
     cfg: configparser Object
         contains configuration settings
+    varName: str
+        statistic variable that is plotted
+    yLimMin, yLimMax: str
+        y limits of the plot, empty: default limits
     title: str
         title for the plot
+    comparisonSavePath: str or pathlib.Path, optional
+        directory where the plot is saved; if None, the savePath of the first pathDict is used
     """
     # allow calling with a single pathDict like before
     if isinstance(pathDictList, dict):
@@ -404,7 +462,6 @@ def plotBoxplot(pathDictList, cfg, title=""):
 
     cfgGen = cfg["GENERAL"]
     cfgSize = cfg["SIZECLASS"]
-    varName = cfgGen.get("statisticVariable")
     centerOf = cfgGen.get("centerOfVariable")
     zDeltaType = cfgGen.get("zDeltaThalweg")
     ylabel = tools.getYlabelBoxplot(varName, zDeltaType)
@@ -445,11 +502,15 @@ def plotBoxplot(pathDictList, cfg, title=""):
     # y limits: from the configuration (if set), otherwise defaults for some variables
     yLimDefaults = {"alphaIn": (19, 36), "velocity": (-1, 50)}
     yMin, yMax = yLimDefaults.get(varName, (None, None))
-    if cfgGen["boxplotYlimMin"] != "":
-        yMin = cfgGen.getfloat("boxplotYlimMin")
-    if cfgGen["boxplotYlimMax"] != "":
-        yMax = cfgGen.getfloat("boxplotYlimMax")
+    if yLimMin != "":
+        yMin = float(yLimMin)
+    if yLimMax != "":
+        yMax = float(yLimMax)
     ax2.set_ylim(bottom=yMin, top=yMax)
+
+    # reference line ratio = 1 (effective = input)
+    if varName in ["uMaxEffRatio", "alphaEffRatio"]:
+        ax2.axhline(1, color="grey", linestyle="--", linewidth=1, zorder=2)
 
     # --- color background (size classes) - only depends on varName/ylim ---
     varLabel = None
@@ -558,7 +619,7 @@ def plotBoxplot(pathDictList, cfg, title=""):
     plt.grid(True)
 
     # --- save: combine info from all study areas ---
-    savePath = pathDictList[0]["savePath"]
+    savePath = _getComparisonSavePath(pathDictList, comparisonSavePath)
     simhashCombined = "-".join(pd["titleVariables"]["simHash"] for pd in pathDictList)
     zdSuffix = (
         f"_{tools.getZDeltaFileSuffix(zDeltaType)}" if tools.isSimulatedZDeltaVariable(varName) else ""
@@ -634,7 +695,17 @@ def addReleaseAreaToPlot(ax, pathDict, colorPra, linewidth=1):
     return ax
 
 
-def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
+def _getComparisonSavePath(pathDictList, comparisonSavePath=None):
+    """return the directory for plots that combine all study areas: comparisonSavePath if given
+    (created if missing), otherwise the savePath of the first pathDict"""
+    if comparisonSavePath is None:
+        return pathDictList[0]["savePath"]
+    comparisonSavePath = pathlib.Path(comparisonSavePath)
+    comparisonSavePath.mkdir(parents=True, exist_ok=True)
+    return comparisonSavePath
+
+
+def plotEffectiveVsInputScatter(pathDictList, cfg, title="", comparisonSavePath=None):
     """
     scatter plot with a linear regression line for
     - effective runout angle vs. input alpha angle
@@ -670,6 +741,10 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
         contains configuration settings
     title: str
         title prefix for the plots
+    comparisonSavePath: str or pathlib.Path, optional
+        directory where the comparison plots (all study areas combined) are saved;
+        if None, the savePath of the first pathDict is used. Per study area plots are
+        always saved in the savePath of the respective pathDict
     """
     if isinstance(pathDictList, dict):
         pathDictList = [pathDictList]
@@ -684,40 +759,33 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
     # TODO: choose which alpha effective are useful!!!
 
     varPairs = [
-        ("alphaIn", "alphaEff", "Input alpha angle [°]", "Effective runout angle [°]", "RunoutAngle"),
+        ("alphaIn", "alphaEff", "Input alpha angle (°)", "Effective runout angle (°)", "RunoutAngle"),
         (
             "alphaIn",
             "alphaEffRelTop",
-            "Input alpha angle [°]",
-            "Effective runout angle from release area top [°]",
+            "Input alpha angle (°)",
+            "Effective runout angle from release area top (°)",
             "RunoutAngleReleaseTop",
         ),
         (
             "alphaIn",
             "alphaEffAveraged",
-            "Input alpha angle [°]",
-            "Effective runout angle of averaged thalweg [°]",
+            "Input alpha angle (°)",
+            "Effective runout angle of averaged thalweg (°)",
             "RunoutAngleAveraged",
         ),
         (
             "alphaIn",
             "gammaEnd",
-            "Input alpha angle [°]",
-            "Averaged travel angle at runout end [°]",
+            "Input alpha angle (°)",
+            "Averaged travel angle at runout end (°)",
             "TravelAngle",
-        ),
-        (
-            "gammaEnd",
-            "alphaEffAveraged",
-            "Averaged travel angle at runout end [°]",
-            "Effective runout angle of averaged thalweg [°]",
-            "RunoutAngleAveragedVsTravelAngle",
         ),
         (
             "velocityIn",
             "velocityEff",
-            "Input max. velocity [m/s]",
-            f"Effective max. velocity [m/s]\n(zDelta {tools.getZDeltaLabel(zDeltaType)})",
+            "Input max. velocity (m/s)",
+            f"Effective max. velocity (m/s)\n(zDelta {tools.getZDeltaLabel(zDeltaType)})",
             "Velocity",
         ),
     ]
@@ -730,7 +798,7 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
         allData.append(data)
         allNames.append(pathDict.get("studyAreaName", pathDict["titleVariables"]["simHash"]))
 
-    savePath = pathDictList[0]["savePath"]
+    savePath = _getComparisonSavePath(pathDictList, comparisonSavePath)
     simhashCombined = "-".join(pd["titleVariables"]["simHash"] for pd in pathDictList)
 
     sizeColors = [f"#{cfgSize[f'colorSize{i}']}" for i in range(1, 6)]
@@ -750,6 +818,7 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
     # per study area, these pairs are plotted side by side in one figure instead of separate figures
     panelTags = ["TravelAngle", "Velocity"]
     panelData = [{} for _ in pathDictList]
+    comparisonPanelArgs = {}
 
     for xKey, yKey, xlabel, ylabel, fileTag in varPairs:
 
@@ -813,44 +882,39 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
             log.info(f"Saved {fileTag} regression plot as {pathDict['savePath'] / filename}")
 
         # --- combined plot: only the regression lines of all study areas, no scatter points ---
+        # no zDelta info (second line of the velocity label) in the comparison plots
+        comparisonYlabel = ylabel.split("\n")[0]
+        comparisonArgs = (xKey, yKey, xlabel, comparisonYlabel, sharedMin, sharedMax, shadingEdges)
+        if fileTag in panelTags:
+            comparisonPanelArgs[fileTag] = comparisonArgs
+
         figComb, axComb = plt.subplots()
-
-        if isVelocityPair:
-            _addSizeClassShading(axComb, yEdges, sizeColors, sharedMin, sharedMax, axis="y")
-            _addSizeClassShading(axComb, xEdges, sizeColors, sharedMin, sharedMax, axis="x")
-
-        for data, areaName in zip(allData, allNames):
-            x, y = data[xKey], data[yKey]
-            mask = ~np.isnan(x) & ~np.isnan(y)
-            x, y = x[mask], y[mask]
-
-            if len(x) < 2:
-                log.info(f"Not enough data for {areaName} ({fileTag}) to fit a regression line.")
-                continue
-
-            coeffs = np.polyfit(x, y, 1)
-            xFit = np.linspace(np.nanmin(x), np.nanmax(x), 100)
-            axComb.plot(xFit, np.polyval(coeffs, xFit), zorder=4, label=f"{areaName} (n = {len(x)})")
-
-        axComb.plot(
-            [sharedMin, sharedMax], [sharedMin, sharedMax], "k:", linewidth=1, zorder=4, label="y = x"
-        )
-
-        axComb.set_xlim(sharedMin, sharedMax)
-        axComb.set_ylim(sharedMin, sharedMax)
-        axComb.set_aspect("equal", adjustable="box")
-
-        axComb.set_xlabel(xlabel)
-        axComb.set_ylabel(ylabel)
+        plotComparisonPanel(axComb, allData, allNames, *comparisonArgs, fitLimits=not isVelocityPair)
         axComb.set_title(f"{title} comparison of study areas".strip())
-        axComb.legend()
-        axComb.grid(True, zorder=0)
 
         sfx = zdSuffix if "Velocity" in fileTag else ""
         filenameComb = f"ThalwegRegression_{fileTag}_{simhashCombined}_{centerOf}{sfx}_comparison.png"
         figComb.savefig(savePath / filenameComb)
         plt.close(figComb)
         log.info(f"Saved combined {fileTag} regression plot as {savePath / filenameComb}")
+
+    # --- combined comparison figure with the panel pairs side by side ---
+    # (travel angle left, velocity right); the angle panel is zoomed to the extent of the regression lines
+    compTags = [tag for tag in panelTags if tag in comparisonPanelArgs]
+    if len(compTags) > 0:
+        fig, axes = plt.subplots(1, len(compTags), figsize=(6 * len(compTags), 6), squeeze=False)
+        for ax, tag in zip(axes[0], compTags):
+            fitLimits = tag != "Velocity"
+            plotComparisonPanel(ax, allData, allNames, *comparisonPanelArgs[tag], fitLimits=fitLimits)
+        fig.suptitle(f"{title} comparison of study areas".strip())
+        fig.tight_layout()
+
+        fileTag = "".join(compTags)
+        sfx = zdSuffix if "Velocity" in fileTag else ""
+        filename = f"ThalwegRegression_{fileTag}_{simhashCombined}_{centerOf}{sfx}_comparison.png"
+        fig.savefig(savePath / filename)
+        plt.close(fig)
+        log.info(f"Saved combined {fileTag} regression plot as {savePath / filename}")
 
     # --- one figure per study area with the panel pairs side by side ---
     for pathDict, areaName, panels in zip(pathDictList, allNames, panelData):
@@ -871,6 +935,82 @@ def plotEffectiveVsInputScatter(pathDictList, cfg, title=""):
         fig.savefig(pathDict["savePath"] / filename)
         plt.close(fig)
         log.info(f"Saved {fileTag} regression plot as {pathDict['savePath'] / filename}")
+
+
+def plotComparisonPanel(
+    ax,
+    allData,
+    allNames,
+    xKey,
+    yKey,
+    xlabel,
+    ylabel,
+    sharedMin,
+    sharedMax,
+    shadingEdges=None,
+    fitLimits=False,
+):
+    """
+    plot only the regression lines of all study areas (no scatter points) with a y = x reference line
+
+    Parameters
+    -----------
+    ax: matplotlib axis
+    allData: list of dict
+        effective values per study area (as returned by tools.getEffectiveValues)
+    allNames: list of str
+        name of each study area (used in the legend)
+    xKey, yKey: str
+        keys of the variables in allData to plot on the x- and y-axis
+    xlabel, ylabel: str
+        axis labels
+    sharedMin, sharedMax: float
+        shared axis limits (identical for x and y)
+    shadingEdges: tuple or None
+        (xEdges, yEdges, colors) for the size class shading (see _addSizeClassShading), None for no shading
+    fitLimits: bool
+        if True, the (shared) axis limits are set to the extent of the regression lines (plus a small
+        margin) instead of sharedMin/sharedMax, so the regression lines fill the axis
+    """
+    fitLines = []
+    for data, areaName in zip(allData, allNames):
+        x, y = data[xKey], data[yKey]
+        mask = ~np.isnan(x) & ~np.isnan(y)
+        x, y = x[mask], y[mask]
+
+        if len(x) < 2:
+            log.info(f"Not enough data for {areaName} ({xKey} vs {yKey}) to fit a regression line.")
+            continue
+
+        coeffs = np.polyfit(x, y, 1)
+        xFit = np.linspace(np.nanmin(x), np.nanmax(x), 100)
+        yFit = np.polyval(coeffs, xFit)
+        fitLines.append((xFit, yFit, f"{areaName} (n = {len(x)})"))
+
+    if fitLimits and len(fitLines) > 0:
+        allFit = np.concatenate([np.concatenate([xFit, yFit]) for xFit, yFit, _ in fitLines])
+        fitMin, fitMax = np.nanmin(allFit), np.nanmax(allFit)
+        margin = 0.05 * (fitMax - fitMin) if fitMax > fitMin else 1.0
+        sharedMin, sharedMax = fitMin - margin, fitMax + margin
+
+    if shadingEdges is not None:
+        xEdges, yEdges, colors = shadingEdges
+        _addSizeClassShading(ax, yEdges, colors, sharedMin, sharedMax, axis="y")
+        _addSizeClassShading(ax, xEdges, colors, sharedMin, sharedMax, axis="x")
+
+    for xFit, yFit, label in fitLines:
+        ax.plot(xFit, yFit, zorder=4, label=label)
+
+    ax.plot([sharedMin, sharedMax], [sharedMin, sharedMax], "k:", linewidth=1, zorder=4, label="y = x")
+
+    ax.set_xlim(sharedMin, sharedMax)
+    ax.set_ylim(sharedMin, sharedMax)
+    ax.set_aspect("equal", adjustable="box")
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.legend()
+    ax.grid(True, zorder=0)
 
 
 def plotRegressionPanel(ax, x, y, areaName, xlabel, ylabel, sharedMin, sharedMax, shadingEdges=None):
