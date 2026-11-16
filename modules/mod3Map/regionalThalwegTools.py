@@ -658,6 +658,9 @@ STATISTIC_VARIABLES = {
     "alphaIn": "alphaIn",
     "velocityMaxIn": "velocityIn",
     "zdeltaMaxIn": "zDeltaIn",
+    # ratio effective / input (same values as in the effective vs. input scatter plots)
+    "uMaxEffRatio": "uMaxEffRatio",
+    "alphaEffRatio": "alphaEffRatio",
 }
 
 
@@ -801,6 +804,7 @@ SIMULATED_ZDELTA_VARIABLES = [
     "velocityAveraged",
     "zdeltaAveraged",
     "impressureAveraged",
+    "uMaxEffRatio",
 ]
 
 
@@ -828,31 +832,35 @@ def getYlabelBoxplot(variable, zDeltaType=None):
     """
 
     if variable == "velocity":
-        ylabel = "Max. Velocity [m/s]"
+        ylabel = "Max. Velocity (m/s)"
     elif variable == "impressure":
-        ylabel = "Max. Impact pressure [kPa]"
+        ylabel = "Max. Impact pressure (kPa)"
     elif variable == "travelLengthMax":
-        ylabel = "Runout length (horizontal) [m]"
+        ylabel = "Runout length (horizontal) (m)"
     elif variable in ["zDelta", "zdelta"]:
-        ylabel = "Max. zDelta [m]"
+        ylabel = "Max. zDelta (m)"
     elif variable == "flux":
         ylabel = "Max. flux"
     elif variable == "alphaIn":
-        ylabel = "Input Alpha angle [°]"
+        ylabel = "Input Alpha angle (°)"
     elif variable == "velocityMaxIn":
-        ylabel = "Input Max. Velocity limit [m/s]"
+        ylabel = "Input Max. Velocity limit (m/s)"
     elif variable == "zdeltaMaxIn":
-        ylabel = "Input Max. Velocity line height limit [m]"
+        ylabel = "Input Max. Velocity line height limit (m)"
     elif variable == "velocityAveraged":
-        ylabel = "Max. Velocity [m/s]"
+        ylabel = "Max. Velocity (m/s)"
     elif variable == "zdeltaAveraged":
-        ylabel = "Max. zDelta [m]"
+        ylabel = "Max. zDelta (m)"
     elif variable == "impressureAveraged":
-        ylabel = "Max. Impact pressure [kPa]"
+        ylabel = "Max. Impact pressure (kPa)"
     elif variable == "travelLengthAveraged":
-        ylabel = "Max. Travel length (FlowPy) [m]"
+        ylabel = "Max. Travel length (FlowPy) (m)"
     elif variable == "relArea":
-        ylabel = "Release area [m²]"
+        ylabel = "Release area (m²)"
+    elif variable == "uMaxEffRatio":
+        ylabel = "Ratio effective / input max. velocity"
+    elif variable == "alphaEffRatio":
+        ylabel = "Ratio input alpha angle / effective runout angle"
     else:
         message = f"{variable} is not a valid thalweg variable for the statistic boxplot"
         log.error(message)
@@ -1007,7 +1015,7 @@ def getEffectiveValues(path, centerOf, zDeltaType="averaged", rho=200):
     Definitions:
     - process path: polygon of the release area (pathPolygons), if not available: cells with flux > 0
     - s: horizontal distance along the thalweg points
-    - effective zDelta: maximum of the simulated zDelta (zDeltaType) along the averaged thalweg
+    - effective zDelta: maximum of the simulated zDelta (zDeltaType) along the thalweg
 
     Parameters
     -----------
@@ -1040,7 +1048,10 @@ def getEffectiveValues(path, centerOf, zDeltaType="averaged", rho=200):
         alphaEffAveraged: runout angle [°] of the averaged (not extended) thalweg from its first to its
         last point, z from the DEM at the averaged x, y and s along the averaged x, y
         gammaEnd: averaged travel angle [°] ("gamma" in the averaged thalweg file) of the last generation,
-        nan if the thalweg file contains no gamma
+        nan if the thalweg file contains no gamma or only one generation (start cells only)
+        uMaxEffRatio: ratio effective / input max. velocity (velocityEff / velocityIn) [-]
+        alphaEffRatio: ratio input / effective alpha angle (alphaIn / gammaEnd) [-], the effective
+        alpha angle is the travel angle of the last generation of the thalweg (gammaEnd)
     """
     keys = [
         "alphaIn",
@@ -1122,12 +1133,21 @@ def getEffectiveValues(path, centerOf, zDeltaType="averaged", rho=200):
             data["alphaEffAveraged"].append(np.nan)
 
         # averaged travel angle (com4FlowPy max_gamma) of the last generation, i.e. at the runout end
+        # thalwegs with only one generation consist of the start cells only (travel angle is 0 there,
+        # since com4FlowPy does not compute it for start cells) -> no valid travel angle at the runout end
         gammaAvg = np.asarray(profileAveraged.get("gamma", []), dtype=float)
-        data["gammaEnd"].append(gammaAvg[-1] if gammaAvg.size > 0 else np.nan)
+        data["gammaEnd"].append(gammaAvg[-1] if gammaAvg.size > 1 else np.nan)
 
         data["name"].append(thalweg["name"])
 
     for key in keys:
         data[key] = np.array(data[key], dtype=float)
+
+    # ratio effective / input (same value pairs as in the effective vs. input scatter plots)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        data["uMaxEffRatio"] = data["velocityEff"] / data["velocityIn"]
+        data["alphaEffRatio"] = data["alphaIn"] / data["gammaEnd"]
+    for key in ["uMaxEffRatio", "alphaEffRatio"]:
+        data[key][~np.isfinite(data[key])] = np.nan
 
     return data
