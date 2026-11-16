@@ -25,7 +25,9 @@ from avaframe.out3Plot import outCom3Plots
 log = logging.getLogger("avaframe.modules.compareRegionalThalwegPlot")
 
 
-def regionalThalwegBoxplotCompareMain(avalanchedirList, cfg=None, simhashList=None, studyAreaNames=None):
+def regionalThalwegBoxplotCompareMain(
+    avalanchedirList, cfg=None, simhashList=None, studyAreaNames=None, saveDir=None
+):
     """
     run regionalThalwegAnalysisMain for several avalanche directories (study areas)
     and plot their statistic boxplots side by side in one combined figure.
@@ -42,6 +44,9 @@ def regionalThalwegBoxplotCompareMain(avalanchedirList, cfg=None, simhashList=No
     studyAreaNames: list of str, optional
         label to show on the x-axis of the comparison boxplot for each study area;
         if None, the folder name of the avalanchedir is used
+    saveDir: str or pathlib.Path, optional
+        the comparison plots (data of all study areas) are saved in saveDir/Outputs/regionalThalwegPlots;
+        if None, the parent directory of the first avalanchedir is used as saveDir
 
     Returns
     -----------
@@ -76,8 +81,13 @@ def regionalThalwegBoxplotCompareMain(avalanchedirList, cfg=None, simhashList=No
         )
         pathDictList.append(pathDict)
 
-    plotTools.plotBoxplot(pathDictList, cfg)
-    plotTools.plotEffectiveVsInputScatter(pathDictList, cfg)
+    if saveDir is None:
+        saveDir = pathlib.Path(avalanchedirList[0]).parent
+
+    comparisonSavePath = pathlib.Path(saveDir, "Outputs", "regionalThalwegPlots")
+
+    plotTools.plotBoxplot(pathDictList, cfg, comparisonSavePath=comparisonSavePath)
+    plotTools.plotEffectiveVsInputScatter(pathDictList, cfg, comparisonSavePath=comparisonSavePath)
 
 
 if __name__ == "__main__":
@@ -105,4 +115,4 @@ if __name__ == "__main__":
         raise FileNotFoundError(message)
     log.info(f"Found {len(avalancheDirs)} study areas in {avaParentDir}: {[p.name for p in avalancheDirs]}")
 
-    regionalThalwegBoxplotCompareMain(avalancheDirs)
+    regionalThalwegBoxplotCompareMain(avalancheDirs, saveDir=avaParentDir)
