@@ -79,7 +79,7 @@ The following workflows use `mod1Release`:
 | Workflow runner | `mod1Release` steps used | Directory mode |
 |---|---|---|
 | `runAvaScenModelChain.py` | **01** `praDelineationVeitinger` → **02** `praSelection` → **03** `praSubCatchments` → **04** `praProcessing` → **05** `praSegmentation` → **06** `praAssignElevSize` → **07** `praPrepForFlowPy` → **08** `praMakeBigDataStructure` | `workFlowDir` |
-| `runDynamicParameterisation.py` | **01** `praDelineationVeitinger` → **04** `praProcessing` → **03** `praSubCatchments` → **05** `praSegmentation` → **07** `praPrepForFlowPy` | `avaDir` |
+| `runSizeDepParameterisation.py` | **01** `praDelineationVeitinger` → **04** `praProcessing` → **03** `praSubCatchments` → **05** `praSegmentation` → **07** `praPrepForFlowPy` | `avaDir` |
 | `runAutoAtesModelChain.py` | **01** `praDelineationVeitinger` → **04** `praProcessing` → **03** `praSubCatchments` → **05** `praSegmentation` → **07** `praPrepForFlowPy` | `avaDir` |
 | `runThalwegAnalysis.py` | Optional release preparation: **01** `praDelineationVeitinger` → **04** `praProcessing` → **03** `praSubCatchments` → **05** `praSegmentation` → **07** `praPrepForFlowPy` | `avaDir` |
 
